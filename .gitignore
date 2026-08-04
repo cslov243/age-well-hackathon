@@ -4,3 +4,6 @@ __pycache__/
 # Runtime workspace — real documents and household data never enter git.
 /care/
 *.bak
+
+# Local Claude Code state — permission allowlist and run locks, not project content.
+.claude/

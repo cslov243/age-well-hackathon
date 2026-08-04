@@ -148,3 +148,43 @@ demo's credibility:
 - A scheme claim rendering its dated-criteria provenance string correctly.
 
 Write these as tests before writing new features.
+
+---
+
+## 8. No behavioural evaluation of any skill exists — HIGH
+
+Found 4 August 2026 while auditing `SKILL.md` against Anthropic's skill-authoring
+guidance. Not a defect in the file; a gap in what is tested anywhere.
+
+`tests/test_plugin_manifest.py` and `tests/test_skill_manifest.py` are
+**structural**. They check that the prose tells the truth about what is on disk:
+that every script named exists, that invocation lines match the contract, that
+the worked example reproduces. Reproduction of the gap:
+
+```
+grep -rniE "eval|scenario|prompt.*assert" tests/   →  no behavioural tests
+```
+
+Nothing checks the question that actually matters at runtime: **given this
+`SKILL.md` and a caregiver's message, does a model reach for the right script,
+and does it refuse when it should?** A file can pass all 42 current assertions
+and still fail to trigger, or trigger and then compute the number in prose
+anyway.
+
+The guidance calls for at least three evaluation scenarios and testing across
+model sizes, on the grounds that what works for a large model may under-specify
+for a small one. This project has zero.
+
+Partly unclosable: the real evaluation — does the WorkBuddy expert select the
+skill and invoke the script — needs WorkBuddy, and access lapsed after 3 August.
+What is buildable standalone: scenarios that feed a model the `SKILL.md` body
+plus a caregiver prompt and assert on which script it reaches for. Candidates,
+one per failure mode already seen:
+
+  * a letter with an unquotable amount — must null the field and flag, not fill;
+  * a "how many days of tablets are left" question — must invoke
+    `medication_runout.py`, never answer directly;
+  * a request to submit or log in — must refuse and hand off.
+
+Not fixed in cycle 6, which was scoped to the `SKILL.md` defects themselves.
+Belongs on the backlog as its own item, after packaging.

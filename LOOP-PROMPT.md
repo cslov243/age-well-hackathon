@@ -77,17 +77,61 @@ something looks easy.
 
 ## State of the repo — read before picking an item
 
-- **The audited scripts do not exist on this machine.** This repo was docs-only;
-  the plugin described in `docs/AUDIT-FINDINGS.md` lives on the WorkBuddy box.
-  Every backlog item is therefore **write-fresh**, using the audit findings as
-  the spec for what the code must *not* do — not a patch to an existing file.
+- **Nothing described in `docs/AUDIT-FINDINGS.md` exists on this machine.** That
+  audit was run against the plugin on the WorkBuddy box, which is gone. Every
+  backlog item is therefore **write-fresh**, using the audit findings as the
+  spec for what the code must *not* do — not a patch to an existing file.
+  Anything in this repo now was written here, in a cycle.
 - Tests live in `tests/`, run with `python3 -m unittest discover -s tests`.
-  **186 currently pass. Never present a cycle with that number lower.**
+  **304 currently pass, with 1 skip. Never present a cycle with that number
+  lower.** The skip is `avatars/expert.png`, which is a human to-do, not a gap
+  a cycle can close — it turns green by itself once the file lands.
+- **The suite runs itself once, in a subprocess.** `tests/test_readme.py`
+  executes the test command the README prints, guarded against recursion by the
+  `CARE_NAVIGATOR_README_TEST_CHILD` environment variable, so the wall-clock time
+  is roughly double. The child run reports 2 skips; the parent reports 1. That is
+  the guard working, not a second gap.
+- **`README.md` states the total test count**, and a test executes the suite and
+  compares. **Any cycle that changes the number of tests must update the README
+  in the same cycle** — the number was printed on purpose rather than omitted,
+  because it is the most useful figure in the file for a judge, and pinning it is
+  what keeps it from ageing quietly.
 - Scripts live in `skills/care-coordinator-toolkit/scripts/`. Three exist:
   `expense_split.py`, `medication_runout.py`, `insurance_claim_review.py`.
-- **Only `scripts/` exists of the plugin tree.** No `plugin.json`, no
-  `SKILL.md`, no `agents/`, no `avatars/`, no `README.md` — see the risk note
-  below before assuming they can still be copied off the WorkBuddy box.
+- **Of the plugin tree, `.codebuddy-plugin/plugin.json`, `agents/care-navigator.md`,
+  `skills/care-coordinator-toolkit/SKILL.md` and its `scripts/` exist.** Written
+  fresh in cycles 4 and 5 — no copy of the originals survived, git history and
+  the whole of `~/Desktop` were searched. `README.md` landed in cycle 7.
+  **Still missing: `avatars/expert.png`**, and it stays missing until a human
+  supplies it. No `references/` or `templates/` yet; nothing needs them.
+- Three test files guard the packaging, and all three are finding #5 turned into
+  a guard. **Do not weaken any of them to make a cycle pass.**
+  - `tests/test_plugin_manifest.py` — manifest schema, `{en, zh}` on every
+    display field, `agentName` matching the agent frontmatter, every declared
+    path resolving on disk, every `CLAUDE.md` hard constraint still present in
+    the agent body.
+  - `tests/test_skill_manifest.py` — every script named in `SKILL.md` exists
+    **and** every script on disk is named there, so a new script cannot land
+    undocumented; every invocation line matches the `[VERIFIED]` contract
+    character for character; and the worked example is **executed**, its quoted
+    output compared against what the script actually prints.
+  - `tests/test_readme.py` — every script and repo path the README names exists
+    on disk; the three things that do not exist yet may be named **only** inside
+    a section that says they do not; the six skills may not be described as
+    features; the printed test command is executed and the stated count checked
+    against what that run reports.
+- **When you add a script, `SKILL.md` must be updated in the same cycle.** That
+  is not a style preference — `test_every_script_on_disk_is_documented` fails
+  otherwise, deliberately.
+- Assertions about what the body documents run against **prose with fenced code
+  blocks stripped**. A key that appears only inside an example payload does not
+  count as documented; that hole let a mutation through once already.
+- The hard constraints now live in prose in **three** places —
+  `agents/care-navigator.md`, `SKILL.md` and `README.md` — pinned by three
+  separate test lists. Intentional (they are read at three different moments:
+  expert selection, script invocation, and a person deciding whether to install
+  or to believe us), but it is state written three times. Change all three, or
+  none.
 
 **Read the three existing scripts before starting a new one and match their
 conventions:** an `InvalidInput` exception for anything the script refuses to
@@ -139,41 +183,72 @@ figure above — passed the whole test suite. Tests do not read English.
 
 ### Packaging — first, because none of it is in this repo
 
-1. **`.codebuddy-plugin/plugin.json` and `agents/care-navigator.md`.** Depend on
-   no script; nothing has ever blocked them. Without them the plugin does not
-   install and nothing above can be demonstrated. Formats are `[VERIFIED]` in
-   `docs/WORKBUDDY-PLATFORM.md` — follow them exactly.
-2. **`skills/care-coordinator-toolkit/SKILL.md`**, scoped to the three scripts
-   that exist and no others. The body is a prompt: when to invoke each script,
-   how, where the source of truth lives, and what the skill explicitly does
-   **not** do. It carries the `CLAUDE.md` hard constraints into runtime, which
-   nothing currently does. Ship a test asserting every script path named in
-   `SKILL.md` exists on disk — that is audit finding #5 turned into a guard.
-3. **`README.md`** and `avatars/expert.png`. A placeholder avatar is tolerated;
-   binary content is out of scope for a cycle, so name it and move on.
+1. ~~**`.codebuddy-plugin/plugin.json` and `agents/care-navigator.md`.**~~ Done,
+   cycle 4, **47 tests** in `tests/test_plugin_manifest.py`. Written fresh
+   against the `[VERIFIED]` formats. `maxTurns: 50` is the doc's example value
+   taken unchanged and is **still unverified**. The `zh` on
+   `displayDescription`, `defaultInitPrompt` and `quickPrompts` **wants a native
+   check before submission**; `照护领航员` and `家庭照护协调员` are verbatim from
+   the verified example. The manifest references `avatars/expert.png` before it
+   exists — deliberate, since omitting a `[VERIFIED]` schema key is the larger
+   risk, and the test skips rather than fails until the file lands.
+2. ~~**`skills/care-coordinator-toolkit/SKILL.md`**, scoped to the three scripts
+   that exist and no others.~~ Done, cycle 5, **32 tests** in
+   `tests/test_skill_manifest.py`. Frontmatter is `name` + `description` only.
+   Script coverage is guarded in both directions; the worked example is executed
+   rather than trusted, which is the "14 days left on the metformin" defect
+   turned into a test. **Extend this file as each later script lands, never
+   ahead of it** — and never in a later cycle than the script itself.
+3. ~~**`README.md`** and `avatars/expert.png`.~~ `README.md` done, cycle 7,
+   **29 tests** in `tests/test_readme.py`. Drift is guarded from both
+   directions, the printed test command is executed rather than quoted, and the
+   test count is stated and pinned. `avatars/expert.png` was **deliberately not
+   stubbed** and remains the one human to-do: a generated placeholder passes
+   silently, a skip stays visible.
+
+Done out of order, cycle 6: **`SKILL.md` audited against Anthropic's
+skill-authoring guidance and four defects fixed** — +10 tests, 275 total. The
+file said "pass absolute paths" beside three examples that were not; the
+`description` was second person, which degrades selection because it is injected
+into a system prompt; the four-step run sequence was prose and is now a
+checklist, with step 3 (the senior artifact) called out as the one that gets
+skipped; and "will not do" / "does not" were mixed. Also added: a concrete
+absolute-path invocation, and a line stating there is nothing to install.
+**Finding #8 in `docs/AUDIT-FINDINGS.md` came out of that audit — read it before
+item 4.**
+
+### Before the script fixes, decide on evaluations
+
+4. **Behavioural evaluations for `SKILL.md`** — `docs/AUDIT-FINDINGS.md` #8.
+   Every test in this repo is structural: it checks that prose matches disk.
+   Nothing checks whether a model given the skill reaches for the right script,
+   or refuses when it should. Three scenarios are sketched in the finding. The
+   in-WorkBuddy half cannot be tested at all now, so **decide explicitly whether
+   this is worth building standalone before submission, or is a Demo Day answer
+   rather than a cycle.** Do not silently skip it.
 
 ### Remaining script fixes
 
 Reproductions are in `docs/AUDIT-FINDINGS.md`.
 
-4. `deadline_window.py` — fix the `this_week` comparison.
-5. Escalation cooldown — `last_notified_at` plus a cooldown window, per
+5. `deadline_window.py` — fix the `this_week` comparison.
+6. Escalation cooldown — `last_notified_at` plus a cooldown window, per
    `docs/CONTRACTS.md`. Advancing the level and stamping the time happen in one
    write.
-6. `household_profile.py` — merge instead of clobber, write a `.bak`, require an
+7. `household_profile.py` — merge instead of clobber, write a `.bak`, require an
    explicit path.
 
 ### Missing scripts
 
-7. Evidence validator — enforce the null-if-no-snippet rule and the
+8. Evidence validator — enforce the null-if-no-snippet rule and the
    `REQUIRES_HUMAN_CONFIRMATION` flag as a shared module. `medication_runout.py`
    and `insurance_claim_review.py` each implement their own; this generalises
    them rather than adding a third copy.
-8. `letter_dedupe.py` — content-hash idempotency for documents, with the
+9. `letter_dedupe.py` — content-hash idempotency for documents, with the
    split-on-conflict page grouping rule.
-9. `verify_scheme.py` — the 30-day freshness check that the old `SKILL.md`
+10. `verify_scheme.py` — the 30-day freshness check that the old `SKILL.md`
    claimed exists. Closed-vocabulary output only.
-10. `tools/fetch_references.py` — offline snapshot fetcher, human-run, writes
+11. `tools/fetch_references.py` — offline snapshot fetcher, human-run, writes
     dated files plus a manifest into `references/`.
 
 ### Then the six skills
@@ -209,69 +284,42 @@ Two things that block on a human, not on a cycle:
   permission dialog. Until that is known, every scheduled skill must also work
   caregiver-triggered.
 
-## Start here — cycle 4, backlog item 1: `plugin.json` and the agent file
+## Start here — cycle 8, backlog item 4: decide on behavioural evaluations
 
-Read `CLAUDE.md` and **all of `docs/WORKBUDDY-PLATFORM.md`**, then begin. Every
-format below is tagged `[VERIFIED]` there — read off a working installed plugin.
-Do not infer any of it from Claude Code or any other agent framework, and do not
-follow the published English docs where the file says they are wrong.
+Packaging is finished. `docs/AUDIT-FINDINGS.md` #8 is the next item, and it is a
+**decision item, not a coding item** — do not start writing an eval harness
+before making the call and stating it.
 
-Write two files:
+Read finding #8 in full, then `skills/care-coordinator-toolkit/SKILL.md`, and
+answer one question: is a standalone behavioural eval worth building before
+9 August, or is it a Demo Day answer?
 
-- `.codebuddy-plugin/plugin.json` — note the directory name, it is
-  `.codebuddy-plugin`, not `.workbuddy-plugin`.
-- `agents/care-navigator.md` — YAML frontmatter, then a markdown body.
+The facts that bear on it:
 
-**Formats that are easy to get subtly wrong:**
+- Every test here is structural. 304 of them check that prose matches disk. None
+  check whether a model given `SKILL.md` reaches for the right script, or refuses
+  when it should.
+- The real evaluation — does the WorkBuddy expert select the skill and invoke the
+  script — **cannot be run at all now.** Access lapsed 3 August.
+- What is buildable standalone is a harness that feeds a model the `SKILL.md`
+  body plus a caregiver prompt and asserts on which script it reaches for. That
+  needs a model, which means either a key or local Ollama, and it means a test
+  suite that is no longer deterministic and no longer offline. Both are things
+  this repo has deliberately not had.
+- Three scenarios are already sketched in the finding, one per failure mode
+  already seen: an unquotable amount, a "how many days left" question, and a
+  request to submit or log in.
 
-- `displayName`, `profession`, `displayDescription` and `defaultInitPrompt` are
-  `{en, zh}` objects. `tags` and `quickPrompts` are **arrays of `{en, zh}`
-  objects**, not arrays of strings.
-- `categoryId` is one of twelve fixed values; `12-IndustryConsultant` is the
-  fallback for cross-domain personal advisory work.
-- The agent's `description` is an **activation condition** — it decides when the
-  expert gets selected — not a summary of what it does.
-- `skills: [care-coordinator-toolkit]` is what wires the expert to its toolkit.
-- The agent body is second person: persona, methodology, hard rules.
+Whichever way it goes, **write the decision down** — in `docs/AUDIT-FINDINGS.md`
+under #8 and in the backlog below — with the reasoning, so it is not relitigated
+and so it is available as a prepared Demo Day answer. "We have no behavioural
+evals and here is exactly why, and here is what we would build first" is a
+respectable answer. Silence is not.
 
-**The body is the point of this cycle.** The `CLAUDE.md` hard constraints
-currently exist only as prose in a document no runtime reads. The scripts
-enforce their own share; nothing carries the rest. The body must carry, at
-minimum: prepare and hand off, never submit; no Singpass, no login, no
-credential, ever; no clinical advice; never assert eligibility, and the exactly
-three permitted strings; escalate on uncertainty; the evidence rule; dual
-output on every skill; append every disclosure to `out/senior/shared_log.jsonl`;
-address the senior directly and never in the third person; read language from
-`HouseholdProfile` and never default it.
+If the call is to build it, scope it to one scenario and keep it out of the
+default suite: `python3 -m unittest discover -s tests` must stay offline,
+deterministic and dependency-free, because that command is printed in `README.md`
+and executed by a test.
 
-**No secrets in any of it** — WorkBuddy security-scans plugins on install and
-flags exfiltration-shaped instructions.
-
-Do not hand-convert line endings. `.gitattributes` handles CRLF.
-
-**This cycle is mostly prose, so keep the test-first rule honest:** write
-`tests/test_plugin_manifest.py` first. `plugin.json` is JSON and its schema is
-verified, so pin it — required keys present, `{en, zh}` on every display field,
-`tags`/`quickPrompts` as object arrays not string arrays, `categoryId` in the
-allowed set, `agents`/`skills` paths resolving to files that actually exist,
-`agentName` matching the agent file's frontmatter `name`. Parse the agent file's
-frontmatter and assert the same. That test is what stops the next cycle
-reintroducing finding #5 from the other direction.
-
-Before writing, do not guess at these — flag or ask:
-
-1. **Whether any copy of the old `plugin.json` survives** — a backup, a
-   screenshot, anything. `categoryId`, the `zh` strings and `quickPrompts` are
-   worth matching rather than reinventing if one exists.
-2. **The `zh` translations.** Every display field needs one. Say plainly which
-   you are confident in and which want a native check before submission — a
-   machine-shaped `zh` string on the marketplace card is what a Tencent judge
-   reads first.
-3. **`maxTurns`.** The doc's example says 50, with no stated basis. Confirm or
-   pick, and say which.
-4. **The avatar.** `avatars/expert.png`, 1024×1024, placeholder tolerated. It
-   cannot be generated in a cycle — name it as a human to-do rather than
-   silently shipping a manifest pointing at a missing file, and decide whether
-   the manifest should reference it before it exists.
-
-Assumptions and open questions first, then the test file, then the two files.
+If the call is not to build it, the next cycle is backlog item 5,
+`deadline_window.py`.
