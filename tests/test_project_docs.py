@@ -18,8 +18,13 @@ file that has to carry it.
 """
 
 import re
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from test_skill_manifest import scripts_on_disk  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 CLAUDE = REPO / "CLAUDE.md"
@@ -27,21 +32,44 @@ DECISIONS = REPO / "docs" / "DECISIONS.md"
 AGENT = REPO / "agents" / "care-navigator.md"
 SKILL = REPO / "skills" / "care-coordinator-toolkit" / "SKILL.md"
 
-# Budgets, not targets. Prose that outgrows one belongs in DECISIONS.md.
+# These are a **ratchet set at the achieved value**, not aspirational targets.
 #
-# These are a ratchet. CLAUDE.md was 1,831 words before the restructure; the
-# budget was first set at 900 and raised **once**, to 975, after the reasoning
-# had already been moved into DECISIONS.md and what remained was tables and
-# one-line rules. It was raised because 900 was picked before anyone knew the
-# irreducible size of the rules, not because the file earned more room.
+# Aspirational numbers were tried first and failed twice: a budget picked before
+# anyone knew the irreducible size of the rules is a number that gets relaxed the
+# moment it binds, which teaches exactly the wrong habit. Each figure below is
+# what the file actually measured once the reasoning had been moved into
+# DECISIONS.md and the prose had been cut as far as it could go without deleting
+# a rule.
 #
-# Do not raise it again to fit new prose. Either the prose is a rule, in which
-# case something else here has stopped being one, or it is reasoning, and
-# reasoning goes in DECISIONS.md.
+# The consequence is deliberate: **editing these files is zero-sum.** Adding a
+# sentence means removing one. If a genuinely new rule needs room, something
+# below it has stopped being a rule, or the reasoning belongs in DECISIONS.md.
+# Lower a number when a file shrinks; do not raise one.
+#
+# For the record, before the restructure: CLAUDE.md 1,831 words, SKILL.md 1,382,
+# the agent body 1,327 — 4,540 down to 3,044.
+#
+# SKILL.md and the agent body matter twice over: both are injected into a model's
+# context — the agent at expert selection, SKILL.md at invocation — so every word
+# is paid for on every run that touches them.
+#
+# DECISIONS.md is the exception. It is a ceiling with room, not a ratchet,
+# because recording a new settled decision is the file working as intended.
 WORD_BUDGETS = {
-    CLAUDE: 975,
+    CLAUDE: 949,
+    SKILL: 1002,
+    AGENT: 1093,
     DECISIONS: 1600,
 }
+
+# SKILL.md is the one file that legitimately grows: test_skill_manifest.py fails
+# if a script on disk is undocumented, so every new script must buy a section
+# here. A flat ratchet would put those two rules in direct conflict the next time
+# a script lands. Each script beyond the current three earns this much and no
+# more — enough for a Use when / Requires / Source of truth / Never block, tight
+# enough that it has to be written the way the existing three are.
+WORDS_PER_ADDITIONAL_SCRIPT = 120
+SCRIPTS_AT_RATCHET = 3
 
 FENCED = re.compile(r"```.*?```", re.DOTALL)
 
@@ -89,12 +117,21 @@ class LengthTests(unittest.TestCase):
         for path, budget in WORD_BUDGETS.items():
             with self.subTest(doc=path.name):
                 self.assertTrue(path.is_file(), f"missing {path}")
+                budget = self.budget_for(path, budget)
                 count = words(path)
                 self.assertLessEqual(
                     count, budget,
                     f"{path.name} is {count} words against a {budget} budget — "
                     f"move the reasoning to docs/DECISIONS.md rather than "
                     f"raising the budget")
+
+    @staticmethod
+    def budget_for(path, budget):
+        """The SKILL.md budget grows with the number of scripts it must cover."""
+        if path != SKILL:
+            return budget
+        extra = max(0, len(scripts_on_disk()) - SCRIPTS_AT_RATCHET)
+        return budget + extra * WORDS_PER_ADDITIONAL_SCRIPT
 
     def test_claude_md_is_structured_not_an_essay(self):
         # Scannable means headings and tables. Prose under a heading is fine;
