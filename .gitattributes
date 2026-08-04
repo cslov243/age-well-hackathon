@@ -1,0 +1,25 @@
+# docs/WORKBUDDY-PLATFORM.md: "Files on the target machine have CRLF line
+# endings. Preserve them or expect noisy diffs."
+#
+# Everything is stored LF in git and normalised on commit. The plugin payload —
+# the directories copied into
+#   C:/Users/<USER>/.workbuddy-ai/plugins/marketplaces/my-experts/plugins/
+# — is checked out CRLF on every platform, so what is authored here is
+# byte-identical to what sits on the Windows box and edits there produce clean
+# diffs rather than whole-file rewrites.
+#
+# Applies from the next checkout. To convert an existing tree in place:
+#   git add --renormalize .
+#
+# Scoped deliberately: tests/ and docs/ never leave this repo, so they stay
+# native and this machine's diffs stay readable.
+
+* text=auto
+
+.codebuddy-plugin/** text eol=crlf
+agents/** text eol=crlf
+skills/** text eol=crlf
+README.md text eol=crlf
+
+avatars/** binary
+*.png binary

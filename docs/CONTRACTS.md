@@ -34,7 +34,7 @@ One per document (not per page).
 | `id` | string | Stable, derived from `content_hash`. |
 | `content_hash` | sha256 | Of the source image bytes. Primary idempotency key. |
 | `source_files` | list[path] | All pages belonging to this record. |
-| `doc_type` | enum | `chas` \| `appointment` \| `hdb` \| `medication` \| `bill` \| `other` |
+| `doc_type` | enum | `chas` \| `appointment` \| `hdb` \| `medication` \| `bill` \| `insurance` \| `other` |
 | `issuer` | string \| null | Requires evidence snippet. |
 | `issue_date` | date \| null | Requires evidence snippet. |
 | `deadline` | date \| null | Requires evidence snippet. |
@@ -95,6 +95,120 @@ unimplemented.** A ladder without a cooldown is a notification loop.
 Rule: do not notify at level *n* if `last_notified_at` is within the cooldown
 window, regardless of what the ladder says. Advancing `escalation_level` and
 setting `last_notified_at` happen in the same write.
+
+---
+
+## InsuranceClaimRecord
+
+Consumed by `scripts/insurance_claim_review.py`. A `LetterRecord` with
+`doc_type: "insurance"` is the source; this is the structured claim extracted
+from it. Added 4 August 2026.
+
+| Field | Type | Evidence-gated |
+|-------|------|----------------|
+| `id` | string | — |
+| `insurer` | string \| null | **yes** (it is the issuer) |
+| `policy_reference` | string \| null | no — an identifier, not a claim about the world |
+| `incident_date` | date \| null | **yes** |
+| `submission_window_days` | int ≥ 0 \| null | **yes** |
+| `insurer_decision` | enum | — closed set, read off the document |
+| `decision_date` | date \| null | **yes** |
+| `appeal_window_days` | int ≥ 0 \| null | **yes** |
+| `amounts.billed` / `.insurer_paid` / `.household_paid` | Decimal ≥ 0 \| null | **yes**, each |
+| `documents_required` / `documents_held` | list[string] | — |
+| `evidence` | dict[field path → snippet] | — |
+
+`insurer_decision` is exactly `paid`, `partially_paid`, `rejected`, `pending`,
+`not_stated`. An unrecognised value is **refused**, never mapped to the nearest
+one. Deadline status is `ok`, `due_today`, `overdue`, `unknown`.
+
+### This never decides coverage
+
+Whether a claim will be paid is the insurer's decision. The script reports the
+outcome the letter states and does the arithmetic around it. There is no code
+path that emits "you are covered", and none that submits or appeals anything —
+`prepare and hand off; never submit` applies here exactly as it does to CHAS.
+
+The three-string eligibility vocabulary does **not** apply: it is for matching a
+profile against scheme criteria, which is a different question from reporting an
+insurer's stated decision. Do not reuse it here.
+
+### Evidence rule, applied to money
+
+- Value present **with** a usable snippet → used.
+- Value present with **no** snippet (or an all-whitespace one) → nulled, listed
+  in `missing_evidence`, claim flagged `REQUIRES_HUMAN_CONFIRMATION`.
+- Value **absent** → null, no flag. "Not found in the document" is honest.
+
+**Any unevidenced amount suppresses `outstanding` and `refund_due` entirely.**
+An absent amount is genuinely zero; an unquotable one is *unknown*, and
+subtracting zero for it would overstate what the household still owes. A missing
+total and a wrong total are not equally bad.
+
+`outstanding = billed − insurer_paid − household_paid`, floored at zero; any
+excess is reported as `refund_due` rather than a negative outstanding.
+
+---
+
+## MedicationRecord
+
+Lives at `household/medication.json`. Consumed by `scripts/medication_runout.py`
+and by `medication-watch`. Added 4 August 2026 — this file previously referenced
+`household/medication.json` without specifying it.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `as_of` | date \| absent | Optional. Absent → SG today, resolved **once**. |
+| `default_lead_time_days` | int ≥ 0 | **Required.** No hardcoded default anywhere. |
+| `medications` | list[object] | May be empty. |
+
+Each medication:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | string | Unique within the file. |
+| `name` | string | As the senior would recognise it. |
+| `form` | string | Unit noun — `tablet`, `capsule`, `ml`. |
+| `form_plural` | string \| absent | Optional; defaults to `form` + `s`. |
+| `quantity_on_hand` | Decimal ≥ 0 | In units of `form`. Never a binary float. |
+| `schedule` | object | `{"mode": "fixed_daily", "units_per_dose", "doses_per_day"}` or `{"mode": "prn"}` |
+| `counted_on` | date \| absent | `fixed_daily` only. Defaults to `as_of`; must be ≤ `as_of`. |
+| `count_basis` | enum | `fixed_daily` only. **Required, no default** — see below. |
+| `lead_time_days` | int ≥ 0 \| absent | `fixed_daily` only. Overrides the file default. |
+
+`counted_on`, `count_basis` and `lead_time_days` are **rejected** on a `prn`
+medication rather than ignored, as are `units_per_dose` and `doses_per_day`. A
+caregiver who supplies a lead time expects an order-by date and would otherwise
+silently not get one.
+
+### Dose-boundary convention
+
+`count_basis` is required and has no default, because whether the count day's
+doses were already taken shifts every run-out date by exactly one day:
+
+- `doses_on_count_day_taken` — counted after that day's doses. Coverage starts
+  the day **after** `counted_on`.
+- `doses_on_count_day_pending` — counted before. Coverage starts **on**
+  `counted_on`.
+
+Output must state the convention in words, never as a bare day count.
+
+### Forecast rules
+
+- `days_of_supply = floor(quantity_on_hand / units_per_day)`, on exact
+  `Fraction`s. **Supply is never rounded up.** `leftover_units` is what remains
+  beyond the last full day and buys no further full day.
+- `runs_out_on` is the first day not fully covered; `last_full_dose_day` is the
+  day before it.
+- `order_by = runs_out_on − lead_time_days`.
+- A `counted_on` earlier than `as_of` consumes supply — a stale count shortens
+  the forecast rather than extending it.
+- Status vocabulary is closed: `ok`, `order_now`, `order_overdue`, `no_supply`.
+  All four derive from the single resolved `as_of`, never the wall clock.
+
+PRN medications are excluded from `forecast` and listed in `not_forecast` with
+`reason: "prn_no_fixed_rate"`, their quantity, and **no dates**. Forecasting one
+is clinical judgement, not arithmetic.
 
 ---
 

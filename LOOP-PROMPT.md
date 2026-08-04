@@ -40,6 +40,30 @@ something looks easy.
 
 ## Standing rules
 
+- **Re-read `docs/WORKBUDDY-PLATFORM.md` every cycle that touches a script, a
+  `SKILL.md`, an agent file, or `plugin.json`, and follow its formats
+  strictly — to the letter, not the spirit.** WorkBuddy is not in your training
+  data and the published English docs are wrong in at least one place, so there
+  is nothing to fall back on when you guess. In particular:
+  - The script invocation contract is fixed:
+    `python3 scripts/<name>.py --input <in.json> [--output <out.json>]`;
+    `--input` absent → stdin, `--output` absent → stdout; every output object
+    carries `tool_run_id` (uuid4) and `issued_at` (ISO 8601, `+08:00`); exit 0
+    on success and raise on bad input.
+  - **Take every path as an argument.** The working directory at WorkBuddy
+    invocation time is `[UNKNOWN]`; a relative default will not resolve.
+  - Skills are `SKILL.md` with YAML frontmatter. The docs saying `skill.yml`
+    are **wrong** — do not follow them.
+  - `plugin.json` display fields, `tags` and `quickPrompts` are `{en, zh}`
+    objects, never bare strings.
+  - The plugin tree is `.codebuddy-plugin/`, `agents/`, `skills/<name>/`
+    (`SKILL.md` + `scripts/` + `references/` + `templates/`), `avatars/`,
+    `README.md`. Put new files where that tree says, not where they feel
+    natural.
+  - Plugin-payload files are CRLF on the target machine. `.gitattributes`
+    enforces this — do not hand-convert line endings or override it.
+  - Anything the doc tags `[UNKNOWN]` is an open question. Write for both
+    answers; never resolve one by assumption.
 - **Never compute a number in prose.** If a value is needed and no script
   produced it, that's a missing script, not a thing to work out in your head.
 - **Never assert eligibility.** Three permitted strings, listed in `CLAUDE.md`.
@@ -80,9 +104,13 @@ wrong. Reproductions are in `docs/AUDIT-FINDINGS.md`.
    46 tests. Weights applied in `weighted` (must sum to 1) and `ratio`
    (normalised, both forms reported) modes; residual cents assigned largest
    weight first, ties by member id; unmatched `paid_by` raises.
-2. `medication_runout.py` — `math.floor` not `round`; derive everything from a
+2. ~~`medication_runout.py` — `math.floor` not `round`; derive everything from a
    single resolved `as_of`; state the dose-boundary convention in the output
-   text.
+   text.~~ **Done** — `scripts/medication_runout.py` +
+   `tests/test_medication_runout.py`, 76 tests. Floor on exact `Fraction`s;
+   `count_basis` a required input with no default; PRN excluded to
+   `not_forecast`; `default_lead_time_days` required, no hardcoded assumption.
+   `MedicationRecord` added to `docs/CONTRACTS.md` in the same commit.
 3. `deadline_window.py` — fix the `this_week` comparison.
 4. Escalation cooldown — `last_notified_at` plus a cooldown window, per
    `docs/CONTRACTS.md`. Advancing the level and stamping the time happen in one
@@ -100,6 +128,16 @@ Then the missing pieces:
    claims exists. Closed-vocabulary output only.
 9. `tools/fetch_references.py` — offline snapshot fetcher, human-run, writes
    dated files plus a manifest into `references/`.
+10. ~~Insurance claims — `doc_type: "insurance"` on LetterRecord plus
+    `insurance_claim_review.py`.~~ **Done** —
+    `scripts/insurance_claim_review.py` + `tests/test_insurance_claim_review.py`,
+    64 tests. Submission and appeal windows, outstanding/refund arithmetic,
+    documents still to gather, evidence-gated throughout. Deliberately **not** a
+    seventh skill: it surfaces through `letter-triage` and `deadline-watch`, so
+    it adds no new trigger surface to collide with a marketplace skill.
+    `InsuranceClaimRecord` added to `docs/CONTRACTS.md`. Still to wire: the
+    `SKILL.md` body must document when to invoke it — but only once
+    `letter-triage` exists, so nothing repeats audit finding #5.
 
 Then the skills themselves — `letter-triage`, `daily-brief`,
 `medication-watch`, `scheme-radar`, `deadline-watch`, `family-dispatch`. Write
