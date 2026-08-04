@@ -116,8 +116,33 @@ with the platform vendor's stated position, not just ours.
 | `deadline-watch` | scheduled daily | Scans open tasks, applies escalation ladder **with cooldown**. |
 | `family-dispatch` | event-driven | Routes tasks, claim/decline, sibling expense split. |
 
-Built so far: `care-coordinator-toolkit` (the shared script layer) and the
-`care-navigator` agent. The six skills above are still to be written.
+`letter-triage` also handles `doc_type: "insurance"` — insurer letters run
+through the same extract-with-evidence path and are reasoned over by
+`insurance_claim_review.py`. Deliberately not a seventh skill: a separate skill
+would add a trigger surface for a marketplace commerce skill to collide with,
+and the claim needs the same evidence rule, dual output and disclosure log as
+every other letter.
+
+### What actually exists, as of 4 August 2026
+
+**The plugin packaging is gone.** `plugin.json`, `agents/care-navigator.md` and
+the toolkit `SKILL.md` were only ever on the WorkBuddy box, and access lapsed
+after 3 August. Treat them as lost unless someone produces a copy. This repo
+contains scripts, tests and docs — **nothing installable**.
+
+Written and tested here, all standalone from the command line:
+
+| | Tests |
+|---|---|
+| `scripts/expense_split.py` | 46 |
+| `scripts/medication_runout.py` | 76 |
+| `scripts/insurance_claim_review.py` | 64 |
+
+Run everything with `python3 -m unittest discover -s tests`.
+
+Still to write: the packaging above, the remaining toolkit scripts, and the six
+skills. `LOOP-PROMPT.md` holds the current order and the reasoning behind it.
+**Packaging comes first** — scripts nobody can install do not demo.
 
 ## Scope decisions — deliberately not built
 

@@ -82,107 +82,196 @@ something looks easy.
   Every backlog item is therefore **write-fresh**, using the audit findings as
   the spec for what the code must *not* do — not a patch to an existing file.
 - Tests live in `tests/`, run with `python3 -m unittest discover -s tests`.
-- Scripts live in `skills/care-coordinator-toolkit/scripts/`.
+  **186 currently pass. Never present a cycle with that number lower.**
+- Scripts live in `skills/care-coordinator-toolkit/scripts/`. Three exist:
+  `expense_split.py`, `medication_runout.py`, `insurance_claim_review.py`.
+- **Only `scripts/` exists of the plugin tree.** No `plugin.json`, no
+  `SKILL.md`, no `agents/`, no `avatars/`, no `README.md` — see the risk note
+  below before assuming they can still be copied off the WorkBuddy box.
 
-**Read `expense_split.py` before starting a new script and match its
+**Read the three existing scripts before starting a new one and match their
 conventions:** an `InvalidInput` exception for anything the script refuses to
 guess at; `json.loads(..., parse_float=Decimal)` at the boundary; binary floats
-rejected rather than coerced; exact `Fraction`s wherever a proportional division
-could put a value on a rounding boundary; the `tool_run_id` / `issued_at`
-`+08:00` envelope; and an audit hash over the computed output as well as the
-resolved inputs, excluding `tool_run_id` and `issued_at` so a replay reproduces
-it.
+rejected rather than coerced; exact `Fraction`s wherever a division could put a
+value on a rounding boundary; the `tool_run_id` / `issued_at` `+08:00` envelope;
+a `conventions` block stating each rule in words; and an audit hash over the
+computed output as well as the resolved inputs, excluding `tool_run_id` and
+`issued_at` so a replay reproduces it.
+
+Two habits that have each caught a real bug — keep both:
+
+- **A required key is not the same as a defaulted one.** `medications` and
+  `claims` are required even though `[]` is legal, because a typo'd key would
+  otherwise exit 0 having silently processed nothing.
+- **A value that is absent differs from a value that is present but
+  unusable.** Absent means the document never said it, and zero is often the
+  right reading. Present-but-unevidenced means *unknown*, and substituting zero
+  produces a confident wrong number. `insurance_claim_review.py` shipped a draft
+  reporting SGD 4,320.00 owed instead of SGD 1,220.00 on exactly this.
+
+**Run the script and read its actual prose output before presenting a cycle.**
+Both prose bugs found so far — `"1 tablets left over"`, and the wrong money
+figure above — passed the whole test suite. Tests do not read English.
 
 ## Backlog, in order
 
-Fixes first — the existing scripts are load-bearing and three of them are
-wrong. Reproductions are in `docs/AUDIT-FINDINGS.md`.
+### Done
 
-1. ~~`expense_split.py` — apply the weights it currently ignores; `Decimal`
-   throughout; deterministic residual-cent rule; fail loudly on an unmatched
-   payer.~~ **Done** — `scripts/expense_split.py` + `tests/test_expense_split.py`,
-   46 tests. Weights applied in `weighted` (must sum to 1) and `ratio`
-   (normalised, both forms reported) modes; residual cents assigned largest
-   weight first, ties by member id; unmatched `paid_by` raises.
-2. ~~`medication_runout.py` — `math.floor` not `round`; derive everything from a
-   single resolved `as_of`; state the dose-boundary convention in the output
-   text.~~ **Done** — `scripts/medication_runout.py` +
-   `tests/test_medication_runout.py`, 76 tests. Floor on exact `Fraction`s;
-   `count_basis` a required input with no default; PRN excluded to
-   `not_forecast`; `default_lead_time_days` required, no hardcoded assumption.
-   `MedicationRecord` added to `docs/CONTRACTS.md` in the same commit.
-3. `deadline_window.py` — fix the `this_week` comparison.
-4. Escalation cooldown — `last_notified_at` plus a cooldown window, per
+- ~~`expense_split.py` — apply the weights it currently ignores; `Decimal`
+  throughout; deterministic residual-cent rule; fail loudly on an unmatched
+  payer.~~ `scripts/expense_split.py` + tests, **46 tests**. Weights applied in
+  `weighted` (must sum to 1) and `ratio` (normalised, both forms reported)
+  modes; residual cents assigned largest weight first, ties by member id;
+  unmatched `paid_by` raises.
+- ~~`medication_runout.py` — floor not round; one resolved `as_of`; state the
+  dose-boundary convention in the output text.~~ `scripts/medication_runout.py`
+  + tests, **76 tests**. Floor on exact `Fraction`s; `count_basis` a required
+  input with no default; PRN excluded to `not_forecast`;
+  `default_lead_time_days` required. `MedicationRecord` added to
+  `docs/CONTRACTS.md`.
+- ~~Insurance claims — `doc_type: "insurance"` plus a review script.~~
+  `scripts/insurance_claim_review.py` + tests, **64 tests**. Submission and
+  appeal windows, outstanding/refund arithmetic, documents still to gather,
+  evidence-gated throughout. Deliberately **not** a seventh skill — it surfaces
+  through `letter-triage` and `deadline-watch`, adding no trigger surface to
+  collide with a marketplace skill. `InsuranceClaimRecord` in
+  `docs/CONTRACTS.md`.
+
+### Packaging — first, because none of it is in this repo
+
+1. **`.codebuddy-plugin/plugin.json` and `agents/care-navigator.md`.** Depend on
+   no script; nothing has ever blocked them. Without them the plugin does not
+   install and nothing above can be demonstrated. Formats are `[VERIFIED]` in
+   `docs/WORKBUDDY-PLATFORM.md` — follow them exactly.
+2. **`skills/care-coordinator-toolkit/SKILL.md`**, scoped to the three scripts
+   that exist and no others. The body is a prompt: when to invoke each script,
+   how, where the source of truth lives, and what the skill explicitly does
+   **not** do. It carries the `CLAUDE.md` hard constraints into runtime, which
+   nothing currently does. Ship a test asserting every script path named in
+   `SKILL.md` exists on disk — that is audit finding #5 turned into a guard.
+3. **`README.md`** and `avatars/expert.png`. A placeholder avatar is tolerated;
+   binary content is out of scope for a cycle, so name it and move on.
+
+### Remaining script fixes
+
+Reproductions are in `docs/AUDIT-FINDINGS.md`.
+
+4. `deadline_window.py` — fix the `this_week` comparison.
+5. Escalation cooldown — `last_notified_at` plus a cooldown window, per
    `docs/CONTRACTS.md`. Advancing the level and stamping the time happen in one
    write.
-5. `household_profile.py` — merge instead of clobber, write a `.bak`, require an
+6. `household_profile.py` — merge instead of clobber, write a `.bak`, require an
    explicit path.
 
-Then the missing pieces:
+### Missing scripts
 
-6. Evidence validator — enforce the null-if-no-snippet rule and the
-   `REQUIRES_HUMAN_CONFIRMATION` flag. Small, and everything else leans on it.
-7. `letter_dedupe.py` — content-hash idempotency for documents, with the
+7. Evidence validator — enforce the null-if-no-snippet rule and the
+   `REQUIRES_HUMAN_CONFIRMATION` flag as a shared module. `medication_runout.py`
+   and `insurance_claim_review.py` each implement their own; this generalises
+   them rather than adding a third copy.
+8. `letter_dedupe.py` — content-hash idempotency for documents, with the
    split-on-conflict page grouping rule.
-8. `verify_scheme.py` — the 30-day freshness check that `SKILL.md` already
-   claims exists. Closed-vocabulary output only.
-9. `tools/fetch_references.py` — offline snapshot fetcher, human-run, writes
-   dated files plus a manifest into `references/`.
-10. ~~Insurance claims — `doc_type: "insurance"` on LetterRecord plus
-    `insurance_claim_review.py`.~~ **Done** —
-    `scripts/insurance_claim_review.py` + `tests/test_insurance_claim_review.py`,
-    64 tests. Submission and appeal windows, outstanding/refund arithmetic,
-    documents still to gather, evidence-gated throughout. Deliberately **not** a
-    seventh skill: it surfaces through `letter-triage` and `deadline-watch`, so
-    it adds no new trigger surface to collide with a marketplace skill.
-    `InsuranceClaimRecord` added to `docs/CONTRACTS.md`. Still to wire: the
-    `SKILL.md` body must document when to invoke it — but only once
-    `letter-triage` exists, so nothing repeats audit finding #5.
+9. `verify_scheme.py` — the 30-day freshness check that the old `SKILL.md`
+   claimed exists. Closed-vocabulary output only.
+10. `tools/fetch_references.py` — offline snapshot fetcher, human-run, writes
+    dated files plus a manifest into `references/`.
 
-Then the skills themselves — `letter-triage`, `daily-brief`,
-`medication-watch`, `scheme-radar`, `deadline-watch`, `family-dispatch`. Write
-each so it works both scheduled and caregiver-triggered, because whether
-unattended scheduled runs clear the permission dialog is still unknown.
+### Then the six skills
 
-## Start here — cycle 2, backlog item 2: `medication_runout.py`
+`letter-triage`, `daily-brief`, `medication-watch`, `scheme-radar`,
+`deadline-watch`, `family-dispatch`. Write each so it works both scheduled and
+caregiver-triggered, because whether unattended scheduled runs clear the
+permission dialog is still unknown. **Add each script to `SKILL.md` as it
+lands** — never ahead of it.
 
-Read `CLAUDE.md`, `docs/CONTRACTS.md` and `docs/AUDIT-FINDINGS.md` §2, then
-begin.
+## Why the order changed — read this before questioning the backlog
 
-Forecast when each medication runs out, from supply on hand and dose rate.
+The original order was fixes → missing scripts → skills last. That was correct
+while `plugin.json`, `agents/care-navigator.md` and the toolkit `SKILL.md` were
+assumed to be sitting on the WorkBuddy box. **Access lapsed after 3 August and
+they are not in this repo.** The assumption the ordering rested on is dead.
 
-The findings it must not reproduce:
+Scripts nobody can install do not demo. The packaging is therefore **first**,
+not last, and the backlog below reflects that.
 
-- `int(round(days_remaining))` used banker's rounding, so 15 and 17 tablets at
-  2/day produced the **same** run-out date and 7.5 days rounded *up* to 8.
-  **Never round supply up. Floor it.**
-- Dates derived from `as_of` while escalation derived from the wall clock, so a
-  historical `as_of` gave past dates with present-tense urgency and nothing
-  replayed deterministically. **One resolved `as_of` at the top**, used for every
-  date and every status. This is a `CONTRACTS.md` requirement, not just a bug.
-- A bare day count is ambiguous about whether today's doses are already taken.
-  **The output must state the convention in words**, e.g. `last dose on the
-  evening of 9 Aug, assuming today's doses have been taken`.
+The reason skills were deferred at all is still valid, but narrower than it
+looks: audit finding #5 is a `SKILL.md` citing `scripts/verify_scheme.py`,
+which does not exist. That forbids **a skill naming a script that isn't there.**
+It does not forbid `plugin.json` or the agent file, which depend on no script
+whatsoever, nor a `SKILL.md` scoped to the scripts that do exist. Write those;
+extend the `SKILL.md` as each later script lands.
 
-**Hard boundary:** pure arithmetic. No clinical judgement anywhere — no dose
-suggestions, no "you should", no interpretation of what running out means
-medically. It reports a date and a supply count and hands off.
+Two things that block on a human, not on a cycle:
 
-Before writing code, do not guess at these — flag or ask:
+- Whether a dragged PDF is readable natively with a vision-capable model
+  selected — test a digitally-generated one *and* a scanned one, they differ.
+- Whether a scheduled automation can carry Full Access, or stalls on the
+  permission dialog. Until that is known, every scheduled skill must also work
+  caregiver-triggered.
 
-1. `docs/CONTRACTS.md` defines LetterRecord, TaskRecord and HouseholdProfile, but
-   **there is no MedicationRecord**. `household/medication.json` is referenced in
-   `CLAUDE.md` and specified nowhere. Proposing that shape is a contract change —
-   surface it rather than quietly inventing one and building on it.
-2. **The dose-boundary convention itself.** Whether `as_of`'s doses count as
-   taken or still to be taken shifts every run-out date by a day. Pick a
-   recommendation, say why, and get it confirmed.
-3. **PRN / as-needed medications** with no fixed daily rate. Forecasting one is a
-   clinical judgement wearing an arithmetic costume. Expected: excluded from the
-   forecast and reported separately — but decide and say so.
-4. **Refill lead time.** The number a caregiver acts on is "order by", not "runs
-   out"; that needs a lead-time input, not a hardcoded assumption about how long
-   a polyclinic repeat prescription takes.
+## Start here — cycle 4, backlog item 1: `plugin.json` and the agent file
 
-Assumptions and open questions first, then the test file, then the
-implementation.
+Read `CLAUDE.md` and **all of `docs/WORKBUDDY-PLATFORM.md`**, then begin. Every
+format below is tagged `[VERIFIED]` there — read off a working installed plugin.
+Do not infer any of it from Claude Code or any other agent framework, and do not
+follow the published English docs where the file says they are wrong.
+
+Write two files:
+
+- `.codebuddy-plugin/plugin.json` — note the directory name, it is
+  `.codebuddy-plugin`, not `.workbuddy-plugin`.
+- `agents/care-navigator.md` — YAML frontmatter, then a markdown body.
+
+**Formats that are easy to get subtly wrong:**
+
+- `displayName`, `profession`, `displayDescription` and `defaultInitPrompt` are
+  `{en, zh}` objects. `tags` and `quickPrompts` are **arrays of `{en, zh}`
+  objects**, not arrays of strings.
+- `categoryId` is one of twelve fixed values; `12-IndustryConsultant` is the
+  fallback for cross-domain personal advisory work.
+- The agent's `description` is an **activation condition** — it decides when the
+  expert gets selected — not a summary of what it does.
+- `skills: [care-coordinator-toolkit]` is what wires the expert to its toolkit.
+- The agent body is second person: persona, methodology, hard rules.
+
+**The body is the point of this cycle.** The `CLAUDE.md` hard constraints
+currently exist only as prose in a document no runtime reads. The scripts
+enforce their own share; nothing carries the rest. The body must carry, at
+minimum: prepare and hand off, never submit; no Singpass, no login, no
+credential, ever; no clinical advice; never assert eligibility, and the exactly
+three permitted strings; escalate on uncertainty; the evidence rule; dual
+output on every skill; append every disclosure to `out/senior/shared_log.jsonl`;
+address the senior directly and never in the third person; read language from
+`HouseholdProfile` and never default it.
+
+**No secrets in any of it** — WorkBuddy security-scans plugins on install and
+flags exfiltration-shaped instructions.
+
+Do not hand-convert line endings. `.gitattributes` handles CRLF.
+
+**This cycle is mostly prose, so keep the test-first rule honest:** write
+`tests/test_plugin_manifest.py` first. `plugin.json` is JSON and its schema is
+verified, so pin it — required keys present, `{en, zh}` on every display field,
+`tags`/`quickPrompts` as object arrays not string arrays, `categoryId` in the
+allowed set, `agents`/`skills` paths resolving to files that actually exist,
+`agentName` matching the agent file's frontmatter `name`. Parse the agent file's
+frontmatter and assert the same. That test is what stops the next cycle
+reintroducing finding #5 from the other direction.
+
+Before writing, do not guess at these — flag or ask:
+
+1. **Whether any copy of the old `plugin.json` survives** — a backup, a
+   screenshot, anything. `categoryId`, the `zh` strings and `quickPrompts` are
+   worth matching rather than reinventing if one exists.
+2. **The `zh` translations.** Every display field needs one. Say plainly which
+   you are confident in and which want a native check before submission — a
+   machine-shaped `zh` string on the marketplace card is what a Tencent judge
+   reads first.
+3. **`maxTurns`.** The doc's example says 50, with no stated basis. Confirm or
+   pick, and say which.
+4. **The avatar.** `avatars/expert.png`, 1024×1024, placeholder tolerated. It
+   cannot be generated in a cycle — name it as a human to-do rather than
+   silently shipping a manifest pointing at a missing file, and decide whether
+   the manifest should reference it before it exists.
+
+Assumptions and open questions first, then the test file, then the two files.
