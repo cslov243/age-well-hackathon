@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+
+# Runtime workspace — real documents and household data never enter git.
+/care/
+*.bak
