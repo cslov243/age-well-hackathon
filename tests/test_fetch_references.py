@@ -286,6 +286,143 @@ class BadRecordTests(unittest.TestCase):
             self.assertEqual(manifest["rejected_count"], 1)
 
 
+# What the live CHAS extract actually looks like, confirmed 4 August 2026. The
+# GeoJSON properties are only {Name: "kml_<n>", Description: "<html table>"} —
+# every real field is inside that table, and `Name` is a KML artifact, not a
+# clinic name.
+REAL_DESCRIPTION = (
+    "<center><table><tr><th colspan='2' align='center'><em>Attributes</em>"
+    "</th></tr><tr bgcolor=\"#E3E3F3\"> <th>HCI_CODE</th> <td>9400749</td> </tr>"
+    "<tr bgcolor=\"\"> <th>HCI_NAME</th> <td>JAPAN CLINIC AND SURGERY</td> </tr>"
+    "<tr bgcolor=\"#E3E3F3\"> <th>HCI_TEL</th> <td>62984517</td> </tr>"
+    "<tr bgcolor=\"\"> <th>POSTAL_CD</th> <td>200802</td> </tr>"
+    "<tr bgcolor=\"#E3E3F3\"> <th>BLK_HSE_NO</th> <td>802</td> </tr>"
+    "<tr bgcolor=\"\"> <th>FLOOR_NO</th> <td>01</td> </tr>"
+    "<tr bgcolor=\"#E3E3F3\"> <th>UNIT_NO</th> <td>55</td> </tr>"
+    "<tr bgcolor=\"\"> <th>STREET_NAME</th> <td>FRENCH RD</td> </tr>"
+    "<tr bgcolor=\"#E3E3F3\"> <th>BUILDING_NAME</th> <td></td> </tr>"
+    "<tr bgcolor=\"\"> <th>CLINIC_PROGRAMME_CODE</th> <td>CDMP,CHAS,ISP</td>"
+    "</tr></table></center>")
+
+REAL_SHAPE = {"type": "FeatureCollection", "features": [
+    {"type": "Feature",
+     "geometry": {"type": "Point", "coordinates": [103.8608, 1.3067]},
+     "properties": {"Name": "kml_367", "Description": REAL_DESCRIPTION}}]}
+
+
+class RealSchemaTests(unittest.TestCase):
+    """The live schema, and the false pass it produced.
+
+    The first version reported `clinics_without_mapped_name: 0` on all 1,192
+    real clinics — and every one of those names was "kml_367" or similar. A
+    guard that says everything is fine while the senior is being told to walk to
+    "kml_367" is worse than no guard, because it is the confident wrong answer
+    this whole product is built against.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.snap = build(REAL_SHAPE)
+        cls.clinic = cls.snap["clinics"][0]
+
+    def test_kml_placeholder_is_not_accepted_as_a_name(self):
+        self.assertNotEqual(self.clinic["name"], "kml_367")
+        self.assertNotIn("kml", (self.clinic["name"] or "").lower())
+
+    def test_the_real_name_is_read_from_the_description_table(self):
+        self.assertEqual(self.clinic["name"], "JAPAN CLINIC AND SURGERY")
+
+    def test_attributes_are_unwrapped_from_the_html(self):
+        attributes = self.clinic["attributes"]
+        self.assertEqual(attributes["HCI_CODE"], "9400749")
+        self.assertEqual(attributes["HCI_TEL"], "62984517")
+        self.assertEqual(attributes["POSTAL_CD"], "200802")
+
+    def test_an_empty_cell_becomes_null_not_an_empty_string(self):
+        # BUILDING_NAME is blank for this clinic. Absent and empty are the same
+        # thing here, and neither is a building called "".
+        self.assertIsNone(self.clinic["attributes"].get("BUILDING_NAME"))
+
+    def test_address_is_composed_from_labelled_parts(self):
+        address = self.clinic["address"]
+        for part in ("802", "FRENCH RD", "200802"):
+            with self.subTest(part=part):
+                self.assertIn(part, address)
+
+    def test_phone_and_postal_code_are_surfaced(self):
+        self.assertEqual(self.clinic["phone"], "62984517")
+        self.assertEqual(self.clinic["postal_code"], "200802")
+
+    def test_programmes_are_split_but_not_interpreted(self):
+        # A fact about the dataset. It says nothing about whether she qualifies.
+        self.assertEqual(self.clinic["programmes"], ["CDMP", "CHAS", "ISP"])
+
+    def test_a_clinic_with_no_readable_name_is_counted(self):
+        bare = {"type": "FeatureCollection", "features": [
+            {"type": "Feature",
+             "geometry": {"type": "Point", "coordinates": [103.86, 1.30]},
+             "properties": {"Name": "kml_9", "Description": "<table></table>"}}]}
+        snap = build(bare)
+        self.assertIsNone(snap["clinics"][0]["name"])
+        self.assertEqual(snap["clinics_without_mapped_name"], 1)
+
+
+class CredentialTests(unittest.TestCase):
+    """The download URL is presigned and carries AWS credentials.
+
+    data.gov.sg's poll-download returns an S3 link with AWSAccessKeyId, a
+    Signature and an x-amz-security-token in the query string. The first version
+    wrote that verbatim into the manifest — inside the plugin payload, which
+    WorkBuddy security-scans on install. No secrets in any plugin file is a hard
+    constraint, and this broke it from inside the tool meant to uphold
+    provenance.
+    """
+
+    PRESIGNED = ("https://s3.ap-southeast-1.amazonaws.com/blobs.data.gov.sg/"
+                 "d_548c.geojson?AWSAccessKeyId=ASIAU7LWPY2WN66UBXNV&"
+                 "Expires=1785856947&Signature=FpOJjFzZBr3EO%2BmNY%3D&"
+                 "x-amz-security-token=IQoJb3JpZ2luX2VjEEUaDmFwLXNv")
+
+    def test_query_string_credentials_are_stripped(self):
+        public = fr.public_url(self.PRESIGNED)
+        for secret in ("AWSAccessKeyId", "Signature", "security-token",
+                       "ASIAU7LWPY2WN66UBXNV"):
+            with self.subTest(secret=secret):
+                self.assertNotIn(secret, public)
+        self.assertTrue(public.startswith("https://s3."))
+        self.assertTrue(public.endswith(".geojson"))
+
+    def test_a_snapshot_never_carries_the_presigned_url(self):
+        snap = fr.build_snapshot(json.dumps(FIXTURE), as_of="2026-08-04",
+                                 source_url=self.PRESIGNED,
+                                 dataset_id=DATASET)
+        blob = json.dumps(snap)
+        for secret in ("AWSAccessKeyId", "Signature=", "security-token"):
+            with self.subTest(secret=secret):
+                self.assertNotIn(secret, blob)
+
+    def test_writing_refuses_anything_secret_shaped(self):
+        # A belt-and-braces check at the last moment before bytes hit the
+        # plugin tree, because this is the failure that gets a plugin rejected
+        # at install time rather than caught in review.
+        snap = build()
+        snap["clinics"][0]["properties"]["leak"] = (
+            "AWSAccessKeyId=ASIAU7LWPY2WN66UBXNV")
+        with TemporaryDirectory() as tmp:
+            with self.assertRaises(fr.InvalidInput):
+                fr.write_snapshot(snap, Path(tmp))
+            self.assertEqual(list(Path(tmp).glob("*.json")), [],
+                             "wrote a file it should have refused")
+
+    def test_no_reference_snapshot_on_disk_carries_a_credential(self):
+        # The repo itself, not just this run.
+        references = REPO / "skills" / "care-coordinator-toolkit" / "references"
+        for path in references.glob("*.json"):
+            with self.subTest(path=path.name):
+                self.assertIsNone(
+                    fr.SECRET_SHAPES.search(path.read_text(encoding="utf-8")))
+
+
 class SnapshotContentTests(unittest.TestCase):
 
     @classmethod

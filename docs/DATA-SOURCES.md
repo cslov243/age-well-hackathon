@@ -31,11 +31,22 @@ worth knowing before anyone trusts it:
   island** (latitude 1.016). It is a bad row, not a coordinate-order problem —
   exchanging longitude and latitude does not rescue it. `fetch_references.py`
   drops it and records why.
-- The property schema is **still unverified.** The fetcher maps `name` and
-  `address` only from keys it recognises and leaves the rest null rather than
-  guessing. Check `clinics_without_mapped_name` in the manifest after a fetch:
-  if it is high, the real key names need adding to `NAME_KEYS`/`ADDRESS_KEYS`,
-  and that is a one-line change once someone has looked at the data.
+- **The property schema is now known.** GeoJSON `properties` carries only
+  `{Name, Description}`. `Name` is a **KML export artifact** — literally
+  `kml_367` — and every real field lives in an HTML attribute table inside
+  `Description`: `HCI_NAME`, `HCI_TEL`, `POSTAL_CD`, `BLK_HSE_NO`,
+  `STREET_NAME`, `FLOOR_NO`, `UNIT_NO`, `CLINIC_PROGRAMME_CODE`. The fetcher
+  unwraps that table into `attributes` and drops the HTML, which loses nothing
+  and saves about 30% of the file.
+- **The download URL is presigned and carries AWS credentials** —
+  `AWSAccessKeyId`, `Signature`, `x-amz-security-token` in the query string. It
+  is stripped to scheme, host and path before anything is written, and
+  `write_snapshot` refuses outright if the snapshot still looks
+  credential-shaped. Nothing secret belongs in the plugin payload; WorkBuddy
+  security-scans it on install.
+- Verified on the live extract: 1,193 features, 1 dropped as a bad geocode,
+  1,192 clinics, all with a name and a composed address, 1,187 with a phone
+  number, and every one listing `CHAS`.
 
 **Verify before building on it, and record the result in this table** — that is
 part of the cycle that first uses an endpoint, not a follow-up.

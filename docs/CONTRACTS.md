@@ -243,17 +243,41 @@ Each clinic:
 |-------|------|-------|
 | `id` | string | `clinic-<12 hex>`, derived from **content, not position**. |
 | `longitude` / `latitude` | **string** | The source's exact decimal text. |
-| `name` / `address` | string \| null | Null when no recognised key matched. |
-| `properties` | object | The source properties, carried through verbatim. |
+| `name` | string \| null | From `HCI_NAME`. Null if only a placeholder was found. |
+| `address` | string \| null | Composed from labelled parts; null if none. |
+| `postal_code` / `phone` | string \| null | From `POSTAL_CD` / `HCI_TEL`. |
+| `programmes` | list[string] | From `CLINIC_PROGRAMME_CODE`. A dataset fact. |
+| `attributes` | object | The `Description` table, unwrapped. Values verbatim. |
+| `properties` | object | Any source properties not in that table. |
 
-### The schema below `properties` is unverified
+### `Name` in this dataset is not a name
 
-`docs/DATA-SOURCES.md` records that no endpoint has been executed. So the
-fetcher validates **geometry**, which is schema-independent, and maps `name` and
-`address` only from keys it recognises. An unrecognised key leaves the field
-`null`, counted in `clinics_without_mapped_name`, with the value still present in
-`properties`. Inventing a clinic name from an unconfirmed schema is the same
-class of mistake as inventing a deadline.
+Verified 4 August 2026. GeoJSON `properties` carries only `{Name, Description}`.
+`Name` is a **KML export artifact** — `kml_367` — and every real field lives in
+an HTML attribute table inside `Description`.
+
+The first version accepted `Name`, reported `clinics_without_mapped_name: 0` for
+all 1,192 clinics, and would have told a senior to walk to "kml_367". A guard
+that reports success while the answer is wrong is worse than no guard. Values
+matching `kml_<n>` are now refused as names, and the field goes null rather than
+plausible.
+
+`attributes` holds the unwrapped table with values carried verbatim — nothing is
+renamed or interpreted. `address` is **composed mechanically** from
+`BLK_HSE_NO`, `STREET_NAME`, `BUILDING_NAME`, `FLOOR_NO`/`UNIT_NO` and
+`POSTAL_CD`; every component survives in `attributes`, so the composition is
+never the only copy of anything.
+
+`programmes` is a fact about the dataset and **says nothing about eligibility**.
+The three-string vocabulary does not apply to it.
+
+### Nothing credential-shaped is ever written
+
+The data.gov.sg download URL is presigned and carries `AWSAccessKeyId`, a
+`Signature` and an `x-amz-security-token`. `source_url` is stripped to scheme,
+host and path, and `write_snapshot` refuses outright if the snapshot still
+matches a credential shape. No secrets in the plugin payload is a hard
+constraint, and this directory ships inside it.
 
 ### A bad row and a misread file are different problems
 

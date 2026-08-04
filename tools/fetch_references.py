@@ -58,10 +58,13 @@ import argparse
 import hashlib
 import json
 import logging
+import re
 import sys
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from html.parser import HTMLParser
 from pathlib import Path
 
 SG = timezone(timedelta(hours=8), name="+08:00")
@@ -77,10 +80,29 @@ ATTRIBUTION = "Ministry of Health, CHAS Clinics, data.gov.sg"
 LON_RANGE = (Decimal("103.55"), Decimal("104.15"))
 LAT_RANGE = (Decimal("1.10"), Decimal("1.52"))
 
-# Property keys worth trying for a display name. Unverified, hence the fallback
-# to null rather than to a guess.
-NAME_KEYS = ("NAME", "name", "HCI_NAME", "CLINIC_NAME", "Name")
-ADDRESS_KEYS = ("ADDRESS", "address", "ADDR", "BLK_HSE_NO", "Address")
+# Verified against the live extract, 4 August 2026. The GeoJSON properties carry
+# only {Name, Description}; every real field lives in an HTML attribute table
+# inside Description, which _attributes_from_description unwraps.
+NAME_KEYS = ("HCI_NAME", "CLINIC_NAME", "NAME", "name")
+PHONE_KEYS = ("HCI_TEL", "TEL", "PHONE")
+POSTAL_KEYS = ("POSTAL_CD", "POSTAL_CODE", "POSTCODE")
+PROGRAMME_KEYS = ("CLINIC_PROGRAMME_CODE", "PROGRAMME_CODE")
+
+# In order. Composed mechanically from labelled fields; nothing is inferred and
+# every component survives verbatim in `attributes`.
+ADDRESS_PARTS = ("BLK_HSE_NO", "STREET_NAME", "BUILDING_NAME")
+
+# `Name` in this dataset is a KML export artifact — "kml_367", not a clinic.
+# Accepting it reported 1,192 mapped names and would have sent a senior to
+# "kml_367", which is the confident wrong answer this product exists to prevent.
+PLACEHOLDER_NAME = re.compile(r"^kml[\s_-]*\d*$", re.IGNORECASE)
+
+# The install-time security scan looks for these, and so does this script before
+# it writes anything into the plugin tree.
+SECRET_SHAPES = re.compile(
+    r"(AWSAccessKeyId|x-amz-security-token|api[_-]?key|secret[_-]?key|"
+    r"access[_-]?token|Signature=|password\s*[:=]|BEGIN\s+(RSA|OPENSSH|PRIVATE))",
+    re.IGNORECASE)
 
 TIMEOUT_SECONDS = 30
 
@@ -175,12 +197,114 @@ def _resolve_as_of(as_of):
             f"as_of: expected an ISO date string (YYYY-MM-DD), got {as_of!r}")
 
 
-def _first_present(properties, keys):
+def public_url(url):
+    """A URL safe to write down: scheme, host and path, no query string.
+
+    data.gov.sg hands back a presigned S3 link carrying AWSAccessKeyId, a
+    Signature and an x-amz-security-token. Those are credentials, they expire,
+    and they are useless as provenance — but written into the plugin payload
+    they are exactly what the install-time security scan looks for.
+    """
+    if not isinstance(url, str):
+        return url
+    parts = urllib.parse.urlsplit(url)
+    if not parts.scheme or not parts.netloc:
+        return url
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path,
+                                    "", ""))
+
+
+class _AttributeTableParser(HTMLParser):
+    """Pull <th>KEY</th><td>VALUE</td> pairs out of the Description table."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.attributes = {}
+        self._cell = None
+        self._buffer = []
+        self._key = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("th", "td"):
+            self._cell = tag
+            self._buffer = []
+
+    def handle_endtag(self, tag):
+        if tag not in ("th", "td") or self._cell != tag:
+            return
+        text = "".join(self._buffer).strip()
+        if tag == "th":
+            self._key = text or None
+        elif self._key is not None:
+            # An empty cell is absent, not a value of "".
+            self.attributes[self._key] = text or None
+            self._key = None
+        self._cell = None
+        self._buffer = []
+
+    def handle_data(self, data):
+        if self._cell:
+            self._buffer.append(data)
+
+
+def _attributes_from_description(properties):
+    """Unwrap the HTML attribute table, if there is one.
+
+    The table is a serialisation of exactly these key/value pairs, so unwrapping
+    loses nothing and spares every consumer a parser. Values are carried
+    verbatim; nothing is renamed or interpreted here.
+    """
+    description = properties.get("Description")
+    if not isinstance(description, str) or "<" not in description:
+        return {}
+    parser = _AttributeTableParser()
+    try:
+        parser.feed(description)
+        parser.close()
+    except Exception:  # a malformed cell is not a reason to lose the clinic
+        LOG.warning("could not parse a Description table; leaving it verbatim")
+        return {}
+    parser.attributes.pop("Attributes", None)  # the table's own caption
+    return parser.attributes
+
+
+def _first_present(source, keys):
     for key in keys:
-        value = properties.get(key)
+        value = source.get(key)
         if isinstance(value, str) and value.strip():
             return value.strip()
     return None
+
+
+def _readable_name(attributes, properties):
+    """A name, or None. Never a KML export artifact."""
+    name = _first_present(attributes, NAME_KEYS) or _first_present(properties,
+                                                                   NAME_KEYS)
+    if name is None or PLACEHOLDER_NAME.match(name):
+        return None
+    return name
+
+
+def _compose_address(attributes):
+    """Join labelled address fields. Mechanical, not inferred.
+
+    Every component stays in `attributes`, so nothing here is the only copy of
+    anything, and a missing block or street yields None rather than a fragment
+    that reads like a real address.
+    """
+    parts = [attributes.get(key) for key in ADDRESS_PARTS]
+    parts = [p for p in parts if p]
+    if not parts:
+        return None
+    line = " ".join(parts)
+    unit = attributes.get("UNIT_NO")
+    floor = attributes.get("FLOOR_NO")
+    if floor and unit:
+        line += f" #{floor}-{unit}"
+    postal = _first_present(attributes, POSTAL_KEYS)
+    if postal:
+        line += f", Singapore {postal}"
+    return line
 
 
 def _in_bounds(longitude, latitude):
@@ -230,13 +354,26 @@ def _clinic_from(feature, where):
     if not isinstance(properties, dict):
         raise RejectedRecord("properties is not an object", where)
 
+    attributes = _attributes_from_description(properties)
+    # The HTML table is a serialisation of `attributes`; keeping both would
+    # store every clinic twice, once unreadably.
+    remainder = {k: v for k, v in properties.items()
+                 if not (k == "Description" and attributes)}
+    programmes = _first_present(attributes, PROGRAMME_KEYS)
+
     clinic = {
         "id": None,  # filled below, from content
         "longitude": str(longitude),
         "latitude": str(latitude),
-        "name": _first_present(properties, NAME_KEYS),
-        "address": _first_present(properties, ADDRESS_KEYS),
-        "properties": properties,
+        "name": _readable_name(attributes, properties),
+        "address": _compose_address(attributes),
+        "postal_code": _first_present(attributes, POSTAL_KEYS),
+        "phone": _first_present(attributes, PHONE_KEYS),
+        # A fact about the dataset. It says nothing about who qualifies.
+        "programmes": ([p.strip() for p in programmes.split(",") if p.strip()]
+                       if programmes else []),
+        "attributes": attributes,
+        "properties": remainder,
     }
     clinic["id"] = _clinic_id(clinic)
     return clinic
@@ -250,6 +387,7 @@ def _clinic_id(clinic):
     """
     blob = json.dumps(
         {"longitude": clinic["longitude"], "latitude": clinic["latitude"],
+         "attributes": clinic["attributes"],
          "properties": clinic["properties"]},
         sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return "clinic-" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
@@ -372,7 +510,7 @@ def build_snapshot(geojson_text, as_of, source_url, dataset_id,
         "record_type": "ClinicSnapshot",
         "as_of": resolved.isoformat(),
         "fetched_at": datetime.now(SG).isoformat(timespec="seconds"),
-        "source_url": source_url,
+        "source_url": public_url(source_url),
         "source_kind": source_kind,
         "dataset_id": dataset_id,
         "attribution": ATTRIBUTION,
@@ -416,6 +554,17 @@ def write_snapshot(snapshot, out_dir):
             raise InvalidInput(
                 f"{path} already exists. Refusing to overwrite a snapshot: "
                 f"delete it deliberately, or pass a different --as-of")
+
+    # Last check before bytes land in the plugin tree. The presigned download
+    # URL carried AWS credentials once already, and a secret reaching this
+    # directory is what gets a plugin rejected at install time rather than
+    # caught in review.
+    leak = SECRET_SHAPES.search(
+        json.dumps(snapshot, ensure_ascii=False, sort_keys=True))
+    if leak is not None:
+        raise InvalidInput(
+            f"refusing to write: snapshot contains something credential-shaped "
+            f"({leak.group(1)}). Nothing secret belongs in the plugin payload")
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
