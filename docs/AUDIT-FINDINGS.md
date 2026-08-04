@@ -6,6 +6,25 @@ Audited 3 August 2026 against the installed plugin. Every finding below was
 The scripts were previously reported as "smoke-tested". They were tested only on
 happy-path inputs, which is why all of this survived.
 
+**None of the code audited below exists on this machine.** It was on the
+WorkBuddy box, and access lapsed after 3 August. These findings are therefore the
+**spec for what the replacements must not do**, never a patch list. Anything
+marked `Rewritten` was written fresh here and tested, not repaired.
+
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | `expense_split.py` silently ignores custom weights | Rewritten |
+| 2 | `medication_runout.py` rounds half-days to even, and upward | Rewritten |
+| 3 | `deadline_window.py` — `this_week` status is wrong | Open |
+| 4 | No escalation cooldown exists anywhere | Open |
+| 5 | Prose citing a script that does not exist — now `tests/test_skill_manifest.py`, and the same check in `tests/test_readme.py` and `tests/test_backlog.py` | Guarded |
+| 6 | No letter-record deduplication | Open |
+| 7 | `household_profile.py` clobbers on write | Open |
+| 8 | No behavioural evaluation of any skill exists | Dropped |
+
+`Open` items are on the backlog in `LOOP-PROMPT.md`. #8 was decided rather than
+deferred — the reasoning and the Demo Day answer are in `docs/DECISIONS.md`.
+
 ---
 
 ## 1. `expense_split.py` silently ignores custom weights — CRITICAL

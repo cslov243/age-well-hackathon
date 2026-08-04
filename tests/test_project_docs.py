@@ -28,9 +28,14 @@ from test_skill_manifest import scripts_on_disk  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 CLAUDE = REPO / "CLAUDE.md"
+LOOP = REPO / "LOOP-PROMPT.md"
+README = REPO / "README.md"
 DECISIONS = REPO / "docs" / "DECISIONS.md"
 AGENT = REPO / "agents" / "care-navigator.md"
 SKILL = REPO / "skills" / "care-coordinator-toolkit" / "SKILL.md"
+SCRIPTS_DIR = REPO / "skills" / "care-coordinator-toolkit" / "scripts"
+PLATFORM = REPO / "docs" / "WORKBUDDY-PLATFORM.md"
+FINDINGS = REPO / "docs" / "AUDIT-FINDINGS.md"
 
 # These are a **ratchet set at the achieved value**, not aspirational targets.
 #
@@ -59,17 +64,20 @@ WORD_BUDGETS = {
     CLAUDE: 949,
     SKILL: 1002,
     AGENT: 1093,
+    LOOP: 1553,
+    README: 1512,
     DECISIONS: 1600,
 }
 
-# SKILL.md is the one file that legitimately grows: test_skill_manifest.py fails
-# if a script on disk is undocumented, so every new script must buy a section
-# here. A flat ratchet would put those two rules in direct conflict the next time
-# a script lands. Each script beyond the current three earns this much and no
-# more — enough for a Use when / Requires / Source of truth / Never block, tight
-# enough that it has to be written the way the existing three are.
+# SKILL.md and README.md legitimately grow: test_skill_manifest.py and
+# test_readme.py both fail if a script on disk goes unnamed, so every new script
+# must buy room in both. A flat ratchet would put those rules in direct conflict
+# the next time a script lands. Each script beyond the current three earns this
+# much and no more — enough for a Use when / Requires / Never block, tight enough
+# that it has to be written the way the existing three are.
 WORDS_PER_ADDITIONAL_SCRIPT = 120
 SCRIPTS_AT_RATCHET = 3
+GROWS_WITH_SCRIPTS = (SKILL, README)
 
 FENCED = re.compile(r"```.*?```", re.DOTALL)
 
@@ -127,8 +135,8 @@ class LengthTests(unittest.TestCase):
 
     @staticmethod
     def budget_for(path, budget):
-        """The SKILL.md budget grows with the number of scripts it must cover."""
-        if path != SKILL:
+        """Files that must name every script grow with the number of scripts."""
+        if path not in GROWS_WITH_SCRIPTS:
             return budget
         extra = max(0, len(scripts_on_disk()) - SCRIPTS_AT_RATCHET)
         return budget + extra * WORDS_PER_ADDITIONAL_SCRIPT
@@ -175,6 +183,79 @@ class HardConstraintReachTests(unittest.TestCase):
 
     def test_the_forbidden_eligibility_phrasing_is_named_as_forbidden(self):
         self.assertIn("you qualify", CLAUDE.read_text(encoding="utf-8").lower())
+
+
+class PlatformDocTests(unittest.TestCase):
+    """The tags are the whole value of docs/WORKBUDDY-PLATFORM.md.
+
+    Each fact in it is marked [VERIFIED] (read off a working plugin), [DOCS]
+    (Tencent says so, unconfirmed) or [UNKNOWN] (open question). A tightening
+    pass that drops a tag turns a known-unknown into an assertion, which is the
+    single most expensive mistake available in a file about a platform that is
+    not in the model's training data.
+    """
+
+    MINIMUM_TAGS = 18  # a ratchet: the count when this guard was written
+
+    def test_all_three_tag_kinds_survive(self):
+        body = PLATFORM.read_text(encoding="utf-8")
+        for tag in ("[VERIFIED]", "[DOCS]", "[UNKNOWN]"):
+            with self.subTest(tag=tag):
+                self.assertIn(tag, body)
+
+    def test_no_tagged_fact_is_quietly_dropped(self):
+        body = PLATFORM.read_text(encoding="utf-8")
+        found = len(re.findall(r"\[(?:VERIFIED|DOCS|UNKNOWN)\]", body))
+        self.assertGreaterEqual(
+            found, self.MINIMUM_TAGS,
+            f"{found} tagged facts, down from {self.MINIMUM_TAGS} — an "
+            f"untagged fact reads as established")
+
+    def test_the_skill_yml_correction_survives(self):
+        # The published English docs say skill.yml. They are wrong, and this is
+        # the one documented defect most likely to be "helpfully" tidied away.
+        body = PLATFORM.read_text(encoding="utf-8").lower()
+        self.assertIn("skill.yml", body)
+        self.assertIn("skill.md", body)
+
+
+class AuditFindingsTests(unittest.TestCase):
+    """The findings table has to track what actually happened to each finding."""
+
+    STATUSES = {"Rewritten", "Guarded", "Open", "Dropped"}
+
+    @classmethod
+    def setUpClass(cls):
+        body = FINDINGS.read_text(encoding="utf-8")
+        cls.rows = [(item.strip(), status.strip())
+                    for item, status in re.findall(
+                        r"^\|\s*[^|]+\|\s*([^|]+?)\s*\|\s*(\w+)\s*\|\s*$",
+                        body, re.MULTILINE)
+                    if status.strip() in cls.STATUSES]
+
+    def test_there_is_a_status_for_every_finding(self):
+        # Eight findings are numbered in the body; every one needs a row.
+        self.assertGreaterEqual(len(self.rows), 8)
+
+    def test_rewritten_findings_name_a_script_that_exists(self):
+        for item, status in self.rows:
+            if status != "Rewritten":
+                continue
+            for script in re.findall(r"\b(\w+\.py)\b", item):
+                with self.subTest(script=script):
+                    self.assertTrue(
+                        (SCRIPTS_DIR / script).is_file(),
+                        f"marked Rewritten but {script} does not exist")
+
+    def test_guarded_findings_name_a_test_that_exists(self):
+        for item, status in self.rows:
+            if status != "Guarded":
+                continue
+            named = re.findall(r"\b(test_\w+\.py)\b", item)
+            self.assertTrue(named, f"{item!r} is Guarded by nothing named")
+            for test in named:
+                with self.subTest(test=test):
+                    self.assertTrue((REPO / "tests" / test).is_file())
 
 
 class DecisionsTests(unittest.TestCase):

@@ -2,36 +2,30 @@
 
 ## Policy: snapshot at build time, never call at runtime
 
-**No script in this project makes a network call.** Datasets are fetched
-offline, written into `references/` with the fetch date, and read from disk by
-scripts that have no networking code at all.
+**No script in this project makes a network call.** Datasets are fetched offline
+by `tools/fetch_references.py` — run by a human, never invoked by a skill —
+written with their fetch date, and read from disk by scripts that contain no
+networking code at all.
 
-Three reasons, in order of importance:
-
-1. WorkBuddy security-scans plugins on install for risky behaviour. A Python
-   script issuing outbound HTTP is exactly the shape that scanner looks for.
-   Do not gamble the submission on a scanner's judgment.
-2. The demo cannot depend on an API being up, a rate limit not firing, or the
-   venue's network working.
-3. It makes the provenance line literally true. `criteria as of 2026-08-03 —
-   verify at <URL>` is honest about a dated snapshot in a way that a live query
-   never is.
-
-Say this on stage as a design choice, not an apology: *we snapshot government
-data with a date rather than querying live, because a caregiving tool should
-never tell you something it can't show you the source of.*
-
-Fetching happens in a separate `tools/fetch_references.py`, run by a human,
-never invoked by a skill.
-
----
+The reasoning, and the Demo Day answer that goes with it, is in
+`docs/DECISIONS.md`. Do not re-argue it here.
 
 ## Verification status
 
 **None of the endpoints below have been executed.** They were gathered from
 documentation and secondary sources on 3 August 2026. Dataset IDs and parameter
-names are leads to verify, not confirmed working calls. Verify each one before
-building on it, and record the result here.
+names are leads to verify, not confirmed working calls.
+
+| Endpoint | Verified? |
+|---|---|
+| OneMap routing (BFA) | No — needs a registered token |
+| OneMap geocoding / search | No |
+| data.gov.sg CHAS Clinics poll-download | No |
+| data.gov.sg Health Facilities | No |
+| NEA real-time weather | No |
+
+**Verify before building on it, and record the result in this table** — that is
+part of the cycle that first uses an endpoint, not a follow-up.
 
 ---
 
@@ -140,13 +134,15 @@ advice — do not add noise.
 
 ---
 
-## Why not more autonomy
+## The test for any new data source
 
-The absence of live tool-calling magic is the thesis, not a shortfall. The agent
-prepares and hands off; the human is the actuator; the arithmetic cannot
-hallucinate. Adding autonomy weakens all three claims.
+What these sources add is **specificity in the senior-facing artifact** — which
+is where the product lives — not agent independence.
 
-What these data sources add is **specificity in the senior-facing artifact** —
-which is where the product actually lives — not agent independence. Judge every
-proposed integration against that: does it make what she reads more concrete, or
-does it just make the agent do more without her?
+Judge every proposed integration against exactly that: *does it make what she
+reads more concrete, or does it just make the agent do more without her?*
+
+"Thursday, 9:40am — Toa Payoh Polyclinic. Step-free route: covered walkway, lift
+at the overhead bridge. 14 minutes. Bring your blue CHAS card." passes. A live
+lookup that lets the agent answer faster, without changing a word she reads,
+does not.
