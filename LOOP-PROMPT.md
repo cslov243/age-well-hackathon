@@ -61,20 +61,18 @@ Do not restate any of them anywhere else.
   below is **write-fresh**, using the findings as the spec for what the code must
   *not* do — never as a patch to an existing file.
 - Tests: `python3 -m unittest discover -s tests`. **Never present a cycle with
-  the count lower than it started.** The one skip is `avatars/expert.png`, a
-  human to-do that turns green by itself once the file lands.
-- The suite runs itself once in a subprocess: `tests/test_readme.py` executes the
-  README's own command, guarded by `CARE_NAVIGATOR_README_TEST_CHILD`. The child
-  reports 2 skips, the parent 1. That is the guard working, not a second gap.
+  the count lower than it started.** The one skip is `avatars/expert.png`.
+- The suite runs itself once in a subprocess, guarded by
+  `CARE_NAVIGATOR_README_TEST_CHILD`. The child reports 2 skips, the parent 1.
+  That is the guard working, not a second gap.
 - Word budgets in `tests/test_project_docs.py` are a **ratchet at the measured
-  value**. Editing `CLAUDE.md`, `SKILL.md` or the agent body is zero-sum: a new
-  sentence means removing one. Only `SKILL.md` grows, at 120 words per new
-  script.
-- Four test files guard prose against code — `test_plugin_manifest`,
-  `test_skill_manifest`, `test_readme`, `test_backlog`. All four are finding #5
-  turned into a guard, and each checks **both** directions. Do not weaken them.
+  value**. Editing these docs is zero-sum: a new sentence means removing one.
+  Only `SKILL.md` and `README.md` grow, at 120 words per new script.
+- Five test files guard prose against code — `test_plugin_manifest`,
+  `test_skill_manifest`, `test_readme`, `test_backlog`, `test_project_docs`. Each
+  checks **both** directions. Do not weaken them.
 
-**Read the three existing scripts before writing a new one and match their
+**Read the existing scripts before writing a new one and match their
 conventions:** `InvalidInput` for anything the script refuses to guess at;
 `json.loads(..., parse_float=Decimal)` at the boundary; binary floats rejected
 rather than coerced; exact `Fraction`s on any rounding boundary; the
@@ -83,9 +81,9 @@ stating each rule in words.
 
 Two habits that have each caught a real bug:
 
-- **A required key is not a defaulted one.** `medications` and `claims` are
-  required even though `[]` is legal, because a typo'd key would otherwise exit 0
-  having silently processed nothing.
+- **A required key is not a defaulted one.** `medications`, `claims` and GeoJSON
+  `features` are required even though `[]` is legal, because a typo'd key would
+  otherwise exit 0 having silently processed nothing.
 - **Absent differs from present-but-unusable.** Absent means the document never
   said it, and zero is often right. Present-but-unevidenced means *unknown*;
   substituting zero produced a draft reporting SGD 4,320.00 owed instead of
@@ -102,17 +100,17 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 
 | # | Item | Status |
 |---|------|--------|
-| 1 | `expense_split.py` — apply the weights it ignored; deterministic residual cent; fail loudly on an unmatched payer | Done |
-| 2 | `medication_runout.py` — floor not round; one resolved `as_of`; state the dose-boundary convention in the output | Done |
-| 3 | `insurance_claim_review.py` — submission and appeal windows, evidence-gated throughout | Done |
-| 4 | The manifest and the agent file, written fresh against the `[VERIFIED]` formats | Done |
-| 5 | The toolkit `SKILL.md`, scoped to the scripts that exist | Done |
-| 6 | `README.md`, guarded against drift in both directions | Done |
-| 7 | `CLAUDE.md` cut to rules; the reasoning moved to `docs/DECISIONS.md` | Done |
-| 8 | `SKILL.md` and the agent body cut to rules; word budgets ratcheted | Done |
-| 9 | This file and `docs/*` restructured; the backlog itself guarded | Done |
-| 10 | `fetch_references.py` — offline snapshot fetcher, human-run, dated output plus a manifest. **The only file permitted to open a socket** | Next |
-| 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Later |
+| 1 | `expense_split.py` | Done |
+| 2 | `medication_runout.py` | Done |
+| 3 | `insurance_claim_review.py` | Done |
+| 4 | The manifest and the agent file | Done |
+| 5 | The toolkit `SKILL.md` | Done |
+| 6 | `README.md` | Done |
+| 7 | `CLAUDE.md` cut to rules; `docs/DECISIONS.md` split out | Done |
+| 8 | `SKILL.md` and the agent body cut to rules | Done |
+| 9 | This file and `docs/*` restructured; the backlog guarded | Done |
+| 10 | `fetch_references.py` — the only file permitted to open a socket | Done |
+| 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Next |
 | 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Later |
 | 13 | `medication-watch` and `daily-brief` — the two skills that make the connectors visible | Later |
 | 14 | `letter-triage` — the entry point for the core loop | Later |
@@ -141,22 +139,30 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle D, backlog item 10: `fetch_references.py`
+## Start here — cycle E, backlog item 11: `clinic_finder.py`
 
-The first connector cycle, and the prerequisite for item 11.
+The connector the senior actually sees. `fetch_references.py` writes the
+snapshot; this ranks it.
 
-Read `docs/DATA-SOURCES.md` first — every endpoint in it is **unverified**, and
-recording the verification result is part of this cycle.
+Read `docs/CONTRACTS.md` → `ClinicSnapshot` first, and
+`docs/DATA-SOURCES.md` → "The test for any new data source".
 
-- It lives in `tools/`, **outside the plugin tree.** No skill invokes it.
-- It fetches the CHAS Clinics GeoJSON via the `poll-download` endpoint. Check
-  `code == 0`; a non-zero code is a failure, not an empty result.
-- It writes a dated snapshot plus a manifest recording source URL, fetch date,
-  record count and attribution.
-- **Tests run offline against a saved fixture.** The parse, validate and write
-  path is tested; the network call is not exercised by the suite.
-  `python3 -m unittest discover -s tests` must stay runnable with the network
-  off.
-- Fix `.gitattributes` in the same cycle: `skills/**` currently forces CRLF, so a
-  GeoJSON snapshot would have different bytes on Windows and any hash over it
-  would differ by platform.
+- `python3 scripts/clinic_finder.py --input <in.json> [--output <out.json>]` —
+  this one **is** a skill script, so it follows the invocation contract, unlike
+  the fetcher.
+- Input takes the snapshot path, a point, and an N or a radius. **Every path is
+  an argument**; nothing defaults.
+- Haversine on WGS 84. Coordinates arrive as strings and become floats only at
+  the trig, which is the one place binary error is acceptable — say so in
+  `conventions`.
+- **Round distance to 10 m.** Metre-precision on a straight-line distance is
+  false precision, and it is straight-line, not walking distance — the output
+  must say which, in words, or the senior artifact will imply a route that was
+  never computed.
+- A snapshot older than 30 days is flagged stale, per the existing freshness
+  rule. Refuse a snapshot whose `content_hash` does not match its clinics.
+- **It asserts nothing about eligibility.** "Three CHAS clinics within 600 m" is
+  a fact about a dataset; whether she gets the subsidy is not. The three-string
+  vocabulary does not appear in this script at all.
+- `SKILL.md` and `README.md` must gain a section in the same cycle — both fail
+  otherwise, and the word budgets grant 120 words each for it.

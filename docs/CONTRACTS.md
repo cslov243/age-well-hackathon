@@ -212,6 +212,62 @@ is clinical judgement, not arithmetic.
 
 ---
 
+## ClinicSnapshot
+
+Written by `tools/fetch_references.py` into
+`skills/care-coordinator-toolkit/references/`, consumed by `clinic_finder.py`.
+Added 4 August 2026. **Additive** — no existing consumer changes.
+
+One dated pair per fetch: `chas-clinics-YYYY-MM-DD.json` and its
+`.manifest.json`.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `record_type` | `"ClinicSnapshot"` | |
+| `as_of` | date | The snapshot's date; the freshness rule reads this. |
+| `fetched_at` | ISO 8601 `+08:00` | Excluded from `content_hash`. |
+| `source_url` / `dataset_id` | string | Provenance for the citation line. |
+| `source_kind` | `dataset_download` \| `local_file` | Which it actually was. A `--from-file` snapshot carries a `dataset_id` for the dataset it is *meant* to be, but nothing verified that — so it does not inherit the dataset's provenance. |
+| `attribution` | string | Required by the Open Data Licence. |
+| `record_count` | int ≥ 1 | Never 0 — see below. |
+| `clinics_without_mapped_name` | int ≥ 0 | How many names could not be mapped. |
+| `content_hash` | sha256 | Over `clinics` only. |
+| `clinics` | list[object] | Sorted by `id`. |
+
+Each clinic:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | string | `clinic-<12 hex>`, derived from **content, not position**. |
+| `longitude` / `latitude` | **string** | The source's exact decimal text. |
+| `name` / `address` | string \| null | Null when no recognised key matched. |
+| `properties` | object | The source properties, carried through verbatim. |
+
+### The schema below `properties` is unverified
+
+`docs/DATA-SOURCES.md` records that no endpoint has been executed. So the
+fetcher validates **geometry**, which is schema-independent, and maps `name` and
+`address` only from keys it recognises. An unrecognised key leaves the field
+`null`, counted in `clinics_without_mapped_name`, with the value still present in
+`properties`. Inventing a clinic name from an unconfirmed schema is the same
+class of mistake as inventing a deadline.
+
+### Two refusals, not warnings
+
+- **Coordinates outside Singapore** (longitude 103.55–104.15, latitude
+  1.10–1.52) are refused. GeoJSON is `[longitude, latitude]`; reversed, every
+  clinic lands in the Indian Ocean and haversine returns a confident distance to
+  it.
+- **An empty `features` list** is refused. A snapshot with no clinics makes every
+  later run say "there are no clinics near you" — a wrong answer dressed as a
+  fact. `features` is required even though `[]` is legal JSON.
+
+Coordinates are strings for the same reason money is `Decimal`: nothing
+downstream should inherit binary floating-point error it did not ask for.
+`clinic_finder.py` converts to float at the trig and nowhere else.
+
+---
+
 ## HouseholdProfile
 
 Single source of truth. Lives at `out/household_profile.json`, read at the top of

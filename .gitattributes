@@ -23,3 +23,12 @@ README.md text eol=crlf
 
 avatars/** binary
 *.png binary
+
+# Reference snapshots are data, not payload prose. Checked out CRLF they would
+# have different bytes on Windows than here, so any hash taken over the file
+# would differ by platform — and a snapshot whose hash depends on where it was
+# read is a snapshot that cannot prove it is unchanged. tools/fetch_references.py
+# hashes parsed content rather than raw bytes for the same reason; this keeps
+# the file itself byte-identical everywhere too.
+skills/**/references/** -text
+*.geojson -text

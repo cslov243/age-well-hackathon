@@ -95,7 +95,7 @@ python3 -m unittest discover -s tests
 ```
 
 <!-- test-count -->
-That runs 328 tests, with one skip — the avatar file below, which turns green by
+That runs 368 tests, with one skip — the avatar file below, which turns green by
 itself once a human supplies it. The count is stated here because it is checked
 against a real run by a test; if it is wrong, the suite fails rather than the
 README quietly ageing.
