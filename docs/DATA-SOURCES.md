@@ -12,17 +12,30 @@ The reasoning, and the Demo Day answer that goes with it, is in
 
 ## Verification status
 
-**None of the endpoints below have been executed.** They were gathered from
-documentation and secondary sources on 3 August 2026. Dataset IDs and parameter
-names are leads to verify, not confirmed working calls.
+Gathered from documentation and secondary sources on 3 August 2026. Dataset IDs
+and parameter names are leads to verify, not confirmed working calls — except
+where this table says otherwise.
 
 | Endpoint | Verified? |
 |---|---|
+| data.gov.sg CHAS Clinics poll-download | **Yes, 4 Aug 2026.** `code == 0` envelope and GeoJSON both as documented |
 | OneMap routing (BFA) | No — needs a registered token |
 | OneMap geocoding / search | No |
-| data.gov.sg CHAS Clinics poll-download | No |
 | data.gov.sg Health Facilities | No |
 | NEA real-time weather | No |
+
+**What the live CHAS extract actually contains**, found on that first run and
+worth knowing before anyone trusts it:
+
+- At least one clinic is geocoded **16 km south of Singapore's southernmost
+  island** (latitude 1.016). It is a bad row, not a coordinate-order problem —
+  exchanging longitude and latitude does not rescue it. `fetch_references.py`
+  drops it and records why.
+- The property schema is **still unverified.** The fetcher maps `name` and
+  `address` only from keys it recognises and leaves the rest null rather than
+  guessing. Check `clinics_without_mapped_name` in the manifest after a fetch:
+  if it is high, the real key names need adding to `NAME_KEYS`/`ADDRESS_KEYS`,
+  and that is a one-line change once someone has looked at the data.
 
 **Verify before building on it, and record the result in this table** — that is
 part of the cycle that first uses an endpoint, not a follow-up.

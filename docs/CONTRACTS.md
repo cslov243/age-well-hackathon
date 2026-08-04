@@ -229,7 +229,10 @@ One dated pair per fetch: `chas-clinics-YYYY-MM-DD.json` and its
 | `source_url` / `dataset_id` | string | Provenance for the citation line. |
 | `source_kind` | `dataset_download` \| `local_file` | Which it actually was. A `--from-file` snapshot carries a `dataset_id` for the dataset it is *meant* to be, but nothing verified that — so it does not inherit the dataset's provenance. |
 | `attribution` | string | Required by the Open Data Licence. |
-| `record_count` | int ≥ 1 | Never 0 — see below. |
+| `record_count` | int ≥ 1 | Clinics kept. Never 0 — see below. |
+| `features_in_source` | int | What arrived, before rejects. |
+| `rejected_count` | int ≥ 0 | Dropped bad rows. |
+| `rejected` | list[{where, reason}] | Why each was dropped. Never silent. |
 | `clinics_without_mapped_name` | int ≥ 0 | How many names could not be mapped. |
 | `content_hash` | sha256 | Over `clinics` only. |
 | `clinics` | list[object] | Sorted by `id`. |
@@ -252,15 +255,22 @@ fetcher validates **geometry**, which is schema-independent, and maps `name` and
 `properties`. Inventing a clinic name from an unconfirmed schema is the same
 class of mistake as inventing a deadline.
 
-### Two refusals, not warnings
+### A bad row and a misread file are different problems
 
-- **Coordinates outside Singapore** (longitude 103.55–104.15, latitude
-  1.10–1.52) are refused. GeoJSON is `[longitude, latitude]`; reversed, every
-  clinic lands in the Indian Ocean and haversine returns a confident distance to
-  it.
-- **An empty `features` list** is refused. A snapshot with no clinics makes every
-  later run say "there are no clinics near you" — a wrong answer dressed as a
-  fact. `features` is required even though `[]` is legal JSON.
+Confirmed against the live extract on 4 August 2026: it contains a point 16 km
+south of Singapore's southernmost island. Refusing the whole file for that meant
+one upstream geocoding error blocked the connector permanently.
+
+| Case | Behaviour |
+|---|---|
+| A point outside Singapore (longitude 103.55–104.15, latitude 1.10–1.52) | **Row dropped**, reason recorded in `rejected`, count in the manifest |
+| A point valid **only** if longitude and latitude are exchanged | **Whole file refused.** One is enough — a correctly ordered file contains no row that only makes sense reversed, so the plausible-looking rows are no more trustworthy |
+| More than 2% of features rejected | **Whole file refused.** Not a dirty dataset; a parsing mistake wearing one's clothes |
+| An empty `features` list | **Refused.** "There are no clinics near you" is a wrong answer dressed as a fact. `features` is required even though `[]` is legal JSON |
+
+A dropped row is never silent: it appears in `rejected` with its index and
+reason, and `record_count` plus `rejected_count` must add up to
+`features_in_source`.
 
 Coordinates are strings for the same reason money is `Decimal`: nothing
 downstream should inherit binary floating-point error it did not ask for.

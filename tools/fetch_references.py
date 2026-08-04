@@ -29,14 +29,23 @@ and address only from keys it recognises. Anything it cannot map stays null and
 is counted in `clinics_without_mapped_name`, because inventing a clinic name
 from an unconfirmed schema is the same class of mistake as inventing a deadline.
 
-Two failure modes are refused rather than written, because both would produce a
-plausible wrong answer downstream instead of an error:
+A bad row and a misread file are different problems, and conflating them was a
+real defect here: the first version refused the entire CHAS extract over a
+single point 16 km south of Singapore's southernmost island, which meant one
+upstream geocoding error blocked the connector permanently.
 
-  * Swapped coordinates. GeoJSON is [longitude, latitude]. Reversed, every
-    Singapore clinic lands in the Indian Ocean and haversine returns a confident
-    distance to it.
-  * An empty dataset. A snapshot with no clinics makes the next script say
-    "there are no clinics near you", which is a wrong answer dressed as a fact.
+  * **A bad row is dropped**, with its reason recorded in the snapshot and its
+    count in the manifest. Government extracts contain them. Never silently:
+    a drop nobody can see is a clinic that quietly stopped existing.
+  * **A misread file is refused whole.** One feature that is valid only when
+    longitude and latitude are exchanged means the file was parsed in the wrong
+    order, and the rows that happen to look plausible are no more trustworthy
+    than the ones that do not.
+  * **Too many rejects are refused whole** — above DEFAULT_MAX_REJECTED_RATIO,
+    it is not a dirty dataset, it is a parsing mistake wearing one's clothes.
+  * **An empty dataset is refused.** A snapshot with no clinics makes the next
+    script say "there are no clinics near you", a wrong answer dressed as a
+    fact.
 
 Coordinates are stored as strings, preserving the source's exact decimal text,
 for the same reason money is Decimal: nothing downstream should inherit binary
@@ -80,6 +89,23 @@ LOG = logging.getLogger("fetch_references")
 
 class InvalidInput(ValueError):
     """Input the script refuses to guess at. Always fatal, never warned about."""
+
+
+class RejectedRecord(Exception):
+    """One unusable feature. Fatal for that record, not for the dataset.
+
+    `swap_fixable` is the difference that matters. A point outside Singapore is
+    a bad row in somebody else's database — real government extracts contain
+    them, and dropping one is right. A point that would be *valid if longitude
+    and latitude were exchanged* says something parsed the file wrongly, which
+    makes every other row suspect however few are visibly broken.
+    """
+
+    def __init__(self, reason, where, swap_fixable=False):
+        super().__init__(reason)
+        self.reason = reason
+        self.where = where
+        self.swap_fixable = swap_fixable
 
 
 # --------------------------------------------------------------------------
@@ -157,43 +183,52 @@ def _first_present(properties, keys):
     return None
 
 
+def _in_bounds(longitude, latitude):
+    return (LON_RANGE[0] <= longitude <= LON_RANGE[1]
+            and LAT_RANGE[0] <= latitude <= LAT_RANGE[1])
+
+
 def _clinic_from(feature, where):
     if not isinstance(feature, dict):
-        raise InvalidInput(f"{where}: expected an object")
+        raise RejectedRecord("feature is not an object", where)
 
     geometry = feature.get("geometry")
     if not isinstance(geometry, dict):
-        raise InvalidInput(f"{where}: geometry is missing or not an object")
+        raise RejectedRecord("geometry is missing or not an object", where)
     if geometry.get("type") != "Point":
-        raise InvalidInput(
-            f"{where}: geometry type {geometry.get('type')!r} is not Point; "
-            f"a clinic is a place, and nothing here knows how to rank a line "
-            f"or a polygon by distance")
+        raise RejectedRecord(
+            f"geometry type {geometry.get('type')!r} is not Point; nothing "
+            f"here knows how to rank a line or a polygon by distance", where)
 
     coordinates = geometry.get("coordinates")
     if not isinstance(coordinates, list) or len(coordinates) < 2:
-        raise InvalidInput(f"{where}: coordinates must be [longitude, latitude]")
+        raise RejectedRecord("coordinates are not [longitude, latitude]", where)
 
-    longitude = _to_coordinate(coordinates[0], f"{where}.coordinates[0]")
-    latitude = _to_coordinate(coordinates[1], f"{where}.coordinates[1]")
+    try:
+        longitude = _to_coordinate(coordinates[0], f"{where}.coordinates[0]")
+        latitude = _to_coordinate(coordinates[1], f"{where}.coordinates[1]")
+    except InvalidInput as exc:
+        raise RejectedRecord(str(exc), where)
 
-    if not LON_RANGE[0] <= longitude <= LON_RANGE[1]:
-        raise InvalidInput(
-            f"{where}: longitude {longitude} is outside Singapore "
-            f"({LON_RANGE[0]}..{LON_RANGE[1]}). GeoJSON is "
-            f"[longitude, latitude] — check the coordinate order before "
-            f"anything ranks this by distance")
-    if not LAT_RANGE[0] <= latitude <= LAT_RANGE[1]:
-        raise InvalidInput(
-            f"{where}: latitude {latitude} is outside Singapore "
-            f"({LAT_RANGE[0]}..{LAT_RANGE[1]}); check the longitude/latitude "
-            f"order")
+    if not _in_bounds(longitude, latitude):
+        # Would exchanging them put the point in Singapore? If so this is not a
+        # bad row, it is a file that was read in the wrong order.
+        swap_fixable = _in_bounds(latitude, longitude)
+        which = ("longitude" if not LON_RANGE[0] <= longitude <= LON_RANGE[1]
+                 else "latitude")
+        value = longitude if which == "longitude" else latitude
+        bounds = LON_RANGE if which == "longitude" else LAT_RANGE
+        detail = (" — the coordinates are the wrong way round; GeoJSON is "
+                  "[longitude, latitude]" if swap_fixable else "")
+        raise RejectedRecord(
+            f"{which} {value} is outside Singapore "
+            f"({bounds[0]}..{bounds[1]}){detail}", where, swap_fixable)
 
     properties = feature.get("properties")
     if properties is None:
         properties = {}
     if not isinstance(properties, dict):
-        raise InvalidInput(f"{where}: properties must be an object")
+        raise RejectedRecord("properties is not an object", where)
 
     clinic = {
         "id": None,  # filled below, from content
@@ -233,9 +268,44 @@ def _content_hash(clinics):
 
 SOURCE_KINDS = ("dataset_download", "local_file")
 
+# A real government extract carries a few bad geocodes; the CHAS one has at
+# least one point 16 km south of Singapore's southernmost island. Dropping those
+# is right. Dropping a *lot* of them is not a dirty dataset, it is a parsing
+# mistake wearing a dataset's clothes, and the difference has to be a number
+# somebody chose on purpose rather than a feeling.
+DEFAULT_MAX_REJECTED_RATIO = Decimal("0.02")
+
+# How many rejects have to be swap-fixable before the whole file is treated as
+# mis-ordered. One is enough: a correctly-ordered file does not contain a row
+# that only makes sense reversed.
+SWAP_FIXABLE_LIMIT = 0
+
+
+def _refuse_if_systematic(rejected, total, max_rejected_ratio):
+    """Tell a dirty dataset apart from a misread one, and refuse only the latter."""
+    swapped = [bad for bad in rejected if bad.swap_fixable]
+    if len(swapped) > SWAP_FIXABLE_LIMIT:
+        raise InvalidInput(
+            f"{len(swapped)} of {total} features are valid only if longitude "
+            f"and latitude are exchanged, e.g. {swapped[0].where}: "
+            f"{swapped[0].reason}. That is a coordinate order problem in the "
+            f"whole file, not a bad row — refusing all of it, because the rows "
+            f"that happen to look plausible are no more trustworthy than these")
+
+    if not rejected:
+        return
+    ratio = Decimal(len(rejected)) / Decimal(total)
+    if ratio > max_rejected_ratio:
+        sample = "; ".join(f"{bad.where}: {bad.reason}" for bad in rejected[:3])
+        raise InvalidInput(
+            f"{len(rejected)} of {total} features rejected "
+            f"({ratio:.1%}), above the {max_rejected_ratio:.1%} limit. That is "
+            f"too many to call bad rows. Sample — {sample}")
+
 
 def build_snapshot(geojson_text, as_of, source_url, dataset_id,
-                   source_kind="dataset_download"):
+                   source_kind="dataset_download",
+                   max_rejected_ratio=DEFAULT_MAX_REJECTED_RATIO):
     """Validate a GeoJSON FeatureCollection into a ClinicSnapshot.
 
     `source_kind` keeps the manifest honest. A snapshot built from `--from-file`
@@ -272,8 +342,17 @@ def build_snapshot(geojson_text, as_of, source_url, dataset_id,
             "every later run say 'there are no clinics near you', which is a "
             "wrong answer dressed as a fact — refusing to write it")
 
-    clinics = [_clinic_from(feature, f"features[{i}]")
-               for i, feature in enumerate(features)]
+    clinics, rejected = [], []
+    for index, feature in enumerate(features):
+        try:
+            clinics.append(_clinic_from(feature, f"features[{index}]"))
+        except RejectedRecord as bad:
+            rejected.append(bad)
+
+    _refuse_if_systematic(rejected, len(features), max_rejected_ratio)
+
+    for bad in rejected:
+        LOG.warning("dropped %s: %s", bad.where, bad.reason)
 
     seen = {}
     for clinic in clinics:
@@ -298,6 +377,10 @@ def build_snapshot(geojson_text, as_of, source_url, dataset_id,
         "dataset_id": dataset_id,
         "attribution": ATTRIBUTION,
         "record_count": len(clinics),
+        "features_in_source": len(features),
+        "rejected_count": len(rejected),
+        "rejected": [{"where": bad.where, "reason": bad.reason}
+                     for bad in rejected],
         "clinics_without_mapped_name": unmapped,
         "coordinate_reference_system": "CRS84 (WGS 84, longitude/latitude)",
         "conventions": {
@@ -345,6 +428,8 @@ def write_snapshot(snapshot, out_dir):
         "dataset_id": snapshot["dataset_id"],
         "attribution": snapshot["attribution"],
         "record_count": snapshot["record_count"],
+        "features_in_source": snapshot["features_in_source"],
+        "rejected_count": snapshot["rejected_count"],
         "clinics_without_mapped_name": snapshot["clinics_without_mapped_name"],
         "content_hash": snapshot["content_hash"],
         "snapshot_file": snapshot_path.name,

@@ -29,6 +29,7 @@ import re
 import subprocess
 import sys
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -190,6 +191,99 @@ class ValidationTests(unittest.TestCase):
     def test_rejects_a_bad_as_of(self):
         with self.assertRaises(fr.InvalidInput):
             build(as_of="4 August 2026")
+
+
+def in_singapore(index):
+    """A valid feature, nudged so every generated point is distinct."""
+    offset = Decimal(index) / Decimal(10000)
+    return {"type": "Feature",
+            "geometry": {"type": "Point",
+                         "coordinates": [float(Decimal("103.80") + offset),
+                                         float(Decimal("1.30") + offset)]},
+            "properties": {"NAME": f"Clinic {index}"}}
+
+
+def collection(features):
+    return {"type": "FeatureCollection", "features": features}
+
+
+class BadRecordTests(unittest.TestCase):
+    """One bad row in a government dataset is not a reason to have no data.
+
+    The CHAS extract really does contain a point 16 km south of Singapore's
+    southernmost island. Refusing the whole file for it meant a single upstream
+    geocoding error blocked the connector permanently — while a *systematic*
+    error, like the whole file being [latitude, longitude], must still refuse
+    everything. These tests pin the line between the two.
+    """
+
+    OUT_OF_BOUNDS = {
+        "type": "Feature",
+        "geometry": {"type": "Point",
+                     "coordinates": [103.8558, 1.01626425482099]},
+        "properties": {"NAME": "Somewhere at sea"}}
+
+    def test_one_bad_record_is_dropped_and_the_rest_survive(self):
+        snap = build(collection([in_singapore(i) for i in range(50)]
+                                + [self.OUT_OF_BOUNDS]))
+        self.assertEqual(snap["record_count"], 50)
+        self.assertEqual(snap["rejected_count"], 1)
+        self.assertNotIn("Somewhere at sea",
+                         [c["name"] for c in snap["clinics"]])
+
+    def test_the_drop_is_recorded_not_silent(self):
+        snap = build(collection([in_singapore(i) for i in range(50)]
+                                + [self.OUT_OF_BOUNDS]))
+        self.assertTrue(snap["rejected"], "nothing recorded about the drop")
+        reason = snap["rejected"][0]
+        self.assertIn("latitude", reason["reason"].lower())
+        self.assertIn("features[50]", reason["where"])
+
+    def test_too_many_bad_records_still_refuses_everything(self):
+        # A handful of bad geocodes is a dataset. A third of them is a parsing
+        # mistake wearing a dataset's clothes.
+        with self.assertRaises(fr.InvalidInput) as caught:
+            build(collection([in_singapore(i) for i in range(10)]
+                             + [self.OUT_OF_BOUNDS] * 5))
+        self.assertIn("rejected", str(caught.exception).lower())
+
+    def test_a_single_swapped_record_refuses_everything(self):
+        # Swap-fixable is categorically different from out-of-range: it says
+        # something parsed the file wrongly, so the other rows are not
+        # trustworthy either, however few are visibly broken.
+        swapped = {"type": "Feature",
+                   "geometry": {"type": "Point",
+                                "coordinates": [1.3329, 103.8558]},
+                   "properties": {}}
+        with self.assertRaises(fr.InvalidInput) as caught:
+            build(collection([in_singapore(i) for i in range(200)] + [swapped]))
+        self.assertIn("order", str(caught.exception).lower())
+
+    def test_a_bad_record_does_not_change_the_ids_of_good_ones(self):
+        good = [in_singapore(i) for i in range(50)]
+        clean = build(collection(good))
+        dirty = build(collection(good + [self.OUT_OF_BOUNDS]))
+        self.assertEqual([c["id"] for c in clean["clinics"]],
+                         [c["id"] for c in dirty["clinics"]])
+
+    def test_the_content_hash_ignores_rejected_records(self):
+        # The hash answers "did the clinics change". A row that never became a
+        # clinic must not move it.
+        good = [in_singapore(i) for i in range(50)]
+        self.assertEqual(build(collection(good))["content_hash"],
+                         build(collection(good + [self.OUT_OF_BOUNDS]))
+                         ["content_hash"])
+
+    def test_the_manifest_surfaces_the_rejected_count(self):
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            snap = build(collection([in_singapore(i) for i in range(50)]
+                                    + [self.OUT_OF_BOUNDS]))
+            paths = fr.write_snapshot(snap, out)
+            manifest = json.loads(
+                next(p for p in paths if "manifest" in p.name)
+                .read_text(encoding="utf-8"))
+            self.assertEqual(manifest["rejected_count"], 1)
 
 
 class SnapshotContentTests(unittest.TestCase):
