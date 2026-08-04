@@ -95,7 +95,7 @@ python3 -m unittest discover -s tests
 ```
 
 <!-- test-count -->
-That runs 304 tests, with one skip — the avatar file below, which turns green by
+That runs 314 tests, with one skip — the avatar file below, which turns green by
 itself once a human supplies it. The count is stated here because it is checked
 against a real run by a test; if it is wrong, the suite fails rather than the
 README quietly ageing.
@@ -184,7 +184,9 @@ defect as a skill citing a script that was never written.
 
 ## Where the rest is written down
 
-- `CLAUDE.md` — the design rules and the reasoning behind them.
+- `CLAUDE.md` — the design rules.
+- `docs/DECISIONS.md` — the scope calls that are settled, and why. Read it before
+  reopening one.
 - `docs/WORKBUDDY-PLATFORM.md` — the platform formats, each tagged verified,
   documented or unknown.
 - `docs/CONTRACTS.md` — the record types and script I/O.
