@@ -32,6 +32,7 @@ REPO = Path(__file__).resolve().parent.parent
 SKILL_DIR = REPO / "skills" / "care-coordinator-toolkit"
 SKILL = SKILL_DIR / "SKILL.md"
 SCRIPTS = SKILL_DIR / "scripts"
+TOOLS = REPO / "tools"
 AGENT = REPO / "agents" / "care-navigator.md"
 MANIFEST = REPO / ".codebuddy-plugin" / "plugin.json"
 
@@ -150,10 +151,14 @@ class ScriptCoverageTests(unittest.TestCase):
         cls.named = set(SCRIPT_MENTION.findall(cls.body))
 
     def test_every_script_named_in_the_body_exists(self):
+        # scripts/ or tools/. SKILL.md has to be able to name the offline
+        # fetcher in order to say that no skill invokes it.
         for name in sorted(self.named):
             with self.subTest(script=name):
-                self.assertTrue((SCRIPTS / name).is_file(),
-                                f"SKILL.md names {name}, which does not exist")
+                self.assertTrue(
+                    (SCRIPTS / name).is_file() or (TOOLS / name).is_file(),
+                    f"SKILL.md names {name}, which exists in neither "
+                    f"scripts/ nor tools/")
 
     def test_every_script_on_disk_is_documented(self):
         # The other direction: a script that lands undocumented is a script the

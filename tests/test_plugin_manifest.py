@@ -374,11 +374,16 @@ class AgentBodyTests(unittest.TestCase):
     def test_body_names_only_scripts_that_exist(self):
         # Finding #5 from the other direction: the old SKILL.md cited
         # scripts/verify_scheme.py, which was never written.
+        # scripts/ or tools/: the body has to be able to name the offline
+        # fetcher in order to say that it never invokes it.
         scripts = REPO / "skills" / "care-coordinator-toolkit" / "scripts"
+        tools = REPO / "tools"
         for named in re.findall(r"[\w/]*?(\w+\.py)", self.body):
             with self.subTest(script=named):
-                self.assertTrue((scripts / named).is_file(),
-                                f"body names {named}, which does not exist")
+                self.assertTrue(
+                    (scripts / named).is_file() or (tools / named).is_file(),
+                    f"body names {named}, which exists in neither scripts/ "
+                    f"nor tools/")
 
 
 if __name__ == "__main__":

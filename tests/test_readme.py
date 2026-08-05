@@ -55,7 +55,6 @@ TEST_COMMAND = "python3 -m unittest discover -s tests"
 # yet.
 ALLOWED_ABSENT = {
     "avatars/expert.png",
-    "skills/care-coordinator-toolkit/references/",
     "skills/care-coordinator-toolkit/templates/",
 }
 
@@ -199,7 +198,7 @@ class PathClaimTests(unittest.TestCase):
                                 f"README names {token}, which does not exist")
 
     def test_unwritten_plugin_directories_are_not_presented_as_present(self):
-        for token in ("references/", "templates/"):
+        for token in ("templates/",):
             with self.subTest(path=token):
                 for line in self.text.split("\n"):
                     if token in line and line not in self.not_built:

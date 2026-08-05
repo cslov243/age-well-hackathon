@@ -110,8 +110,8 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 8 | `SKILL.md` and the agent body cut to rules | Done |
 | 9 | This file and `docs/*` restructured; the backlog guarded | Done |
 | 10 | `fetch_references.py` — the only file permitted to open a socket | Done |
-| 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Next |
-| 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Later |
+| 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Done |
+| 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Next |
 | 13 | `medication-watch` and `daily-brief` — the two skills that make the connectors visible | Later |
 | 14 | `letter-triage` — the entry point for the core loop | Later |
 | 15 | `deadline_window.py` — fix the `this_week` comparison | Later |
@@ -139,30 +139,24 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle E, backlog item 11: `clinic_finder.py`
+## Start here — cycle F, backlog item 12: `pharmacy_cart.py`
 
-The connector the senior actually sees. `fetch_references.py` writes the
-snapshot; this ranks it.
+The second connector. `medication_runout.py` forecasts the run-out; this turns
+one into a **cart draft a person reviews and pays for**, and nothing further.
 
-Read `docs/CONTRACTS.md` → `ClinicSnapshot` first, and
-`docs/DATA-SOURCES.md` → "The test for any new data source".
+Read `docs/CONTRACTS.md` → `MedicationRecord`, and `docs/DECISIONS.md` on
+third-party commerce before writing a line of it.
 
-- `python3 scripts/clinic_finder.py --input <in.json> [--output <out.json>]` —
-  this one **is** a skill script, so it follows the invocation contract, unlike
-  the fetcher.
-- Input takes the snapshot path, a point, and an N or a radius. **Every path is
-  an argument**; nothing defaults.
-- Haversine on WGS 84. Coordinates arrive as strings and become floats only at
-  the trig, which is the one place binary error is acceptable — say so in
-  `conventions`.
-- **Round distance to 10 m.** Metre-precision on a straight-line distance is
-  false precision, and it is straight-line, not walking distance — the output
-  must say which, in words, or the senior artifact will imply a route that was
-  never computed.
-- A snapshot older than 30 days is flagged stale, per the existing freshness
-  rule. Refuse a snapshot whose `content_hash` does not match its clinics.
-- **It asserts nothing about eligibility.** "Three CHAS clinics within 600 m" is
-  a fact about a dataset; whether she gets the subsidy is not. The three-string
-  vocabulary does not appear in this script at all.
-- `SKILL.md` and `README.md` must gain a section in the same cycle — both fail
-  otherwise, and the word budgets grant 120 words each for it.
+- `python3 scripts/pharmacy_cart.py --input <in.json> [--output <out.json>]`.
+- Consumes a `medication_runout.py` result. **It never recomputes a forecast** —
+  a second implementation of the same arithmetic is a second answer.
+- Output carries `requires_human_checkout: true`, line items, and a deep link
+  that is a string in an artifact. **No API call, no payment, no stored card, no
+  standing authority.**
+- **No invented price.** A price exists only if a snapshot or the caregiver
+  supplied one. Any price missing → the total is suppressed entirely, not
+  estimated. A confident wrong total is worse than no total.
+- **Prescription-only items never enter the cart.** They route to the refill
+  path with a plain sentence saying why. This needs `supply_channel` on
+  `MedicationRecord` — a **contract change: stop and flag it** before writing.
+- `SKILL.md` and `README.md` gain a section in the same cycle.

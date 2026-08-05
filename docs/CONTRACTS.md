@@ -271,6 +271,26 @@ never the only copy of anything.
 `programmes` is a fact about the dataset and **says nothing about eligibility**.
 The three-string vocabulary does not apply to it.
 
+### Reading it — `clinic_finder.py`
+
+The only consumer. It recomputes `content_hash` over `clinics` and **refuses a
+snapshot that does not match**: a hand-edited one is the single failure the
+fetcher's guarantees do not survive, and it would produce a confident distance
+to a coordinate nobody checked.
+
+Distance is haversine on a sphere of radius 6371008.8 m — the mean radius of the
+WGS 84 ellipsoid — **rounded to the nearest 10 m**. Ranking runs on the
+unrounded value and ties by clinic id, so the display rounding can never reorder
+the list. Coordinates stay decimal strings until the trigonometry.
+
+It is a **straight line, not a walking distance**. No route is computed, nothing
+is said about stairs or step-free access, and every record repeats that in its
+`summary` so a record quoted on its own keeps the caveat.
+
+A snapshot more than 30 days older than `as_of` is flagged `stale` and still
+used. One dated *after* `as_of` is refused — one of the two dates is wrong and
+the script cannot tell which.
+
 ### Nothing credential-shaped is ever written
 
 The data.gov.sg download URL is presigned and carries `AWSAccessKeyId`, a

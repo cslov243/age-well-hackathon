@@ -77,7 +77,7 @@ WORD_BUDGETS = {
 # that it has to be written the way the existing three are.
 WORDS_PER_ADDITIONAL_SCRIPT = 120
 SCRIPTS_AT_RATCHET = 3
-GROWS_WITH_SCRIPTS = (SKILL, README)
+GROWS_WITH_SCRIPTS = (SKILL, README, AGENT)
 
 FENCED = re.compile(r"```.*?```", re.DOTALL)
 

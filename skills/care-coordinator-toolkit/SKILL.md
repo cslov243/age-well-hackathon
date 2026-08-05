@@ -1,11 +1,11 @@
 ---
 name: care-coordinator-toolkit
-description: "Runs deterministic scripts that produce every number in a care task: days of medication supply left, insurance claim deadlines and amounts outstanding, and the split of a shared care cost between family members. Use when a date, a quantity, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly."
+description: "Runs deterministic scripts that produce every number in a care task: days of medication supply left, insurance claim deadlines and amounts outstanding, the split of a shared care cost between family members, and the distance to the nearest clinics. Use when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly."
 ---
 
 # Care coordinator toolkit
 
-Three scripts. Between them they own **every number this expert reports.**
+Four scripts. Between them they own **every number this expert reports.**
 
 ## The rule
 
@@ -23,11 +23,12 @@ failure by hand.
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
+python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
 ```
 
-Keep `scripts/` exactly as written. **Everything in angle brackets is a
-placeholder you replace with an absolute path** — the working directory at
-invocation time is not something you can rely on. In full:
+Keep `scripts/` as written. **Angle brackets are placeholders for absolute
+paths** — the working directory at invocation is not something you can rely on.
+In full:
 
 ```
 python3 scripts/medication_runout.py --input /care/household/medication.json --output /care/out/family/medication_forecast.json
@@ -144,6 +145,22 @@ Shares sum exactly to the total. The stray cent goes one each, largest applied
 weight first, ties by member id — quote `residual_rule` so nobody reverse-engineers
 who absorbed it. Money is `Decimal`: pass amounts as **strings** (`"123.70"`),
 never floats.
+
+## `clinic_finder.py` — the nearest clinics to a point
+
+**Use when** she asks where to go, or an artifact needs a place and a distance.
+
+**Requires:** `snapshot_path`, an `origin` giving `longitude` **then** `latitude`
+— GeoJSON order — and at least one of `limit` and `radius_metres`.
+
+**Source of truth:** a dated snapshot under `references/`, written offline by a
+person running `tools/fetch_references.py`. An edited one is refused; over 30
+days old still answers, marked `stale`.
+
+**Never call the distance a walk.** It is a straight line rounded to 10 m: no
+route was worked out, and nothing says whether the way is step-free. Quote the
+record's `summary`, which says so. `programmes` is a dataset fact and settles
+nothing about any person.
 
 ## Finishing a run
 
