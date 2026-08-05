@@ -175,6 +175,20 @@ Each medication:
 | `counted_on` | date \| absent | `fixed_daily` only. Defaults to `as_of`; must be ≤ `as_of`. |
 | `count_basis` | enum | `fixed_daily` only. **Required, no default** — see below. |
 | `lead_time_days` | int ≥ 0 \| absent | `fixed_daily` only. Overrides the file default. |
+| `supply_channel` | enum \| absent | `general_sale` \| `pharmacist_only` \| `prescription_only`. Added 5 August 2026 — see below. |
+
+### `supply_channel` — added for `pharmacy_cart.py`, additive
+
+**Absent is not a default, it is `unknown`.** `medication_runout.py` neither
+reads nor echoes this field, so its output and its audit hash are unchanged and
+no existing consumer moves. The only consumer is `pharmacy_cart.py`, which
+excludes anything whose channel it was not told, and never assumes general sale.
+
+That asymmetry is the whole point. Getting `general_sale` wrong puts a
+prescription medicine in a shopping cart; getting `unknown` wrong costs one
+question to the caregiver. The two mistakes are not the same size, so the
+default goes to the cheap one.
+
 
 `counted_on`, `count_basis` and `lead_time_days` are **rejected** on a `prn`
 medication rather than ignored, as are `units_per_dose` and `doses_per_day`. A
@@ -319,6 +333,50 @@ reason, and `record_count` plus `rejected_count` must add up to
 Coordinates are strings for the same reason money is `Decimal`: nothing
 downstream should inherit binary floating-point error it did not ask for.
 `clinic_finder.py` converts to float at the trig and nowhere else.
+
+---
+
+## PharmacyCartDraft
+
+Written by `scripts/pharmacy_cart.py`. Added 5 August 2026. **Additive** — its
+only input beyond `MedicationRecord.supply_channel` is supplied per run.
+
+Input: a `medication_runout.py` result passed **verbatim** as `forecast`, plus
+`cover_days`, a `purchase` map keyed by medication id, and an optional
+`pharmacy`. The forecast's `audit_hash` is recomputed with
+`medication_runout.audit_hash_of` — the same function that wrote it, imported
+rather than reimplemented — and a mismatch is refused. A forecast dated after
+`as_of` is refused; one more than 7 days older is flagged `stale` and still used.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `requires_human_checkout` | `true` | A constant. No input can make it false. |
+| `cover_days` | int ≥ 1 | **Required, no default.** How much to buy is not this script's call. |
+| `cart.items[]` | list | Only `general_sale` medicines that the forecast says are due. |
+| `cart.currency` | string \| null | One currency per cart. Two are refused, never summed. |
+| `cart.total` | Decimal string \| null | **Null unless every line is priced.** |
+| `cart.total_suppressed_because` | string \| null | Which ids lack a price, in words. |
+| `excluded[]` | list | `{id, name, reason, route, summary}`. |
+| `counts` | object | `cart_items + excluded == medications_in_forecast`. |
+
+Each item carries `units_needed` (`cover_days` × the forecast's daily rate,
+**rounded up** — the opposite of the forecast's floor, because half a tablet
+cannot be bought), `pack_size`, `packs`, `units_ordered`, `price` and
+`line_total`. `price` requires a `currency` **and** a `source`: this script looks
+nothing up, so an unsourced price is one somebody remembered.
+
+Exclusion reasons, in the order the summary reads them:
+`prescription_only`, `pharmacist_only`, `supply_channel_unknown`,
+`no_forecast_quantity` (prn — no daily rate, so no quantity), `not_due_yet`.
+Channel is tested before timing: saying "not due yet" about a prescription
+medicine implies it will be buyable later, and it never will.
+
+### It prepares. It does not buy.
+
+No network call, no API, no payment, no stored card, no standing authority. A
+`deep_link` is a string the caller supplies and a person clicks; it is validated
+(`https://` only, no userinfo, nothing credential-shaped) and copied, never
+opened. `docs/DECISIONS.md` records why the purchase itself is never built.
 
 ---
 

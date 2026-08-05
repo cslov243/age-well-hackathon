@@ -19,7 +19,7 @@ An expert plus one skill, in a single plugin:
   rules it does not break.
 - `skills/care-coordinator-toolkit/SKILL.md` — when and how to invoke each
   script, and what the toolkit refuses to do.
-- `skills/care-coordinator-toolkit/scripts/` — four deterministic scripts.
+- `skills/care-coordinator-toolkit/scripts/` — five deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
   fetched offline by a person and read from disk.
 
@@ -53,7 +53,7 @@ reproduced months later. And the scheduled work costs almost nothing in tokens,
 because it is arithmetic over structured records rather than a model re-reading
 documents.
 
-## The four scripts
+## The five scripts
 
 | Script | What it computes |
 |---|---|
@@ -61,14 +61,16 @@ documents.
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding or refundable, documents still to gather. |
 | `expense_split.py` | A shared care cost divided between family members, by weight or by ratio, with the residual cent accounted for. |
 | `clinic_finder.py` | The nearest clinics to a point in a dated snapshot, by straight-line distance rounded to 10 m. |
+| `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
 
-All four take the same form:
+All five take the same form:
 
 ```
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
 python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
+python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 ```
 
 Everything in angle brackets is a placeholder for an **absolute** path — the
@@ -92,6 +94,12 @@ never rounded up.
 Distances are straight-line, rounded to the nearest 10 m, and never a walking
 route — nothing in this repo computes one.
 
+The pharmacy cart is a draft and nothing else. It carries
+`requires_human_checkout: true`, no code path can set it false, and nothing in
+the repo calls a shop. A medicine enters it only if the household recorded that
+it can be bought without a prescription; an unrecorded supply channel is
+*unknown*, and unknown stays out of the cart.
+
 ## Running the tests
 
 No WorkBuddy, no network, no packages, no fixtures to download. From the repo
@@ -102,7 +110,7 @@ python3 -m unittest discover -s tests
 ```
 
 <!-- test-count -->
-That runs 452 tests, with one skip — the avatar file below, which turns green by
+That runs 544 tests, with one skip — the avatar file below, which turns green by
 itself once a human supplies it. The count is stated here because it is checked
 against a real run by a test; if it is wrong, the suite fails rather than the
 README quietly ageing.

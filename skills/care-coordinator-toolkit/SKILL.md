@@ -1,11 +1,11 @@
 ---
 name: care-coordinator-toolkit
-description: "Runs deterministic scripts that produce every number in a care task: days of medication supply left, insurance claim deadlines and amounts outstanding, the split of a shared care cost between family members, and the distance to the nearest clinics. Use when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly."
+description: "Runs deterministic scripts that produce every number in a care task: days of medication supply left, insurance claim deadlines and amounts outstanding, the split of a shared care cost between family members, the distance to the nearest clinics, and a pharmacy cart draft. Use when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly."
 ---
 
 # Care coordinator toolkit
 
-Four scripts. Between them they own **every number this expert reports.**
+Five scripts. Between them they own **every number this expert reports.**
 
 ## The rule
 
@@ -24,6 +24,7 @@ python3 scripts/medication_runout.py --input <input.json> [--output <output.json
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
 python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
+python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 ```
 
 Keep `scripts/` as written. **Angle brackets are placeholders for absolute
@@ -161,6 +162,24 @@ days old still answers, marked `stale`.
 route was worked out, and nothing says whether the way is step-free. Quote the
 record's `summary`, which says so. `programmes` is a dataset fact and settles
 nothing about any person.
+
+## `pharmacy_cart.py` — a cart draft a person pays for
+
+**Use when** a forecast says something runs out.
+
+**Requires:** `forecast` — a `medication_runout.py` result passed **verbatim**;
+its `audit_hash` is recomputed and a mismatch refused — plus `cover_days` and
+`purchase` (even when `{}`).
+
+**Never recompute the forecast** — copy its dates and rates. **Never check
+out**, and never offer to: `requires_human_checkout` is always true.
+
+`purchase[id].supply_channel` is `general_sale`, `pharmacist_only` or
+`prescription_only`. **An id you leave out is unknown, and unknown is excluded** —
+never called buyable. Prescription items go to the refill path.
+
+**No invented price.** A price needs a `currency` and `source`. One unpriced
+line suppresses the whole `total` — report none rather than a partial one.
 
 ## Finishing a run
 

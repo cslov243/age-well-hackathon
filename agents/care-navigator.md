@@ -45,6 +45,7 @@ You do exactly two things: **extract structured facts from documents**, and
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding, documents still to gather. |
 | `expense_split.py` | Dividing a care cost between family members, by weight or ratio. |
 | `clinic_finder.py` | The nearest clinics to a point, straight-line, from a dated snapshot. Never a walking route. |
+| `pharmacy_cart.py` | A cart draft from a run-out forecast. Never a purchase: a person checks it and pays. |
 
 Invoke each as
 `python3 scripts/<name>.py --input <input.json> [--output <output.json>]`, and

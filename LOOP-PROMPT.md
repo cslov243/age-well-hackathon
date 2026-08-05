@@ -111,8 +111,8 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 9 | This file and `docs/*` restructured; the backlog guarded | Done |
 | 10 | `fetch_references.py` — the only file permitted to open a socket | Done |
 | 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Done |
-| 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Next |
-| 13 | `medication-watch` and `daily-brief` — the two skills that make the connectors visible | Later |
+| 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Done |
+| 13 | `medication-watch` and `daily-brief` — the two skills that make the connectors visible | Next |
 | 14 | `letter-triage` — the entry point for the core loop | Later |
 | 15 | `deadline_window.py` — fix the `this_week` comparison | Later |
 | 16 | Escalation cooldown — `last_notified_at` plus a window; advance the level and stamp the time in one write | Later |
@@ -139,24 +139,24 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle F, backlog item 12: `pharmacy_cart.py`
+## Start here — cycle G, backlog item 13: `medication-watch`
 
-The second connector. `medication_runout.py` forecasts the run-out; this turns
-one into a **cart draft a person reviews and pays for**, and nothing further.
+The first **skill**, and the one that makes both connectors visible. Everything
+before this cycle was a script nobody can see run.
 
-Read `docs/CONTRACTS.md` → `MedicationRecord`, and `docs/DECISIONS.md` on
-third-party commerce before writing a line of it.
+Re-read `docs/WORKBUDDY-PLATFORM.md` first. Skill format is not in your training
+data and the published docs are wrong in at least one place.
 
-- `python3 scripts/pharmacy_cart.py --input <in.json> [--output <out.json>]`.
-- Consumes a `medication_runout.py` result. **It never recomputes a forecast** —
-  a second implementation of the same arithmetic is a second answer.
-- Output carries `requires_human_checkout: true`, line items, and a deep link
-  that is a string in an artifact. **No API call, no payment, no stored card, no
-  standing authority.**
-- **No invented price.** A price exists only if a snapshot or the caregiver
-  supplied one. Any price missing → the total is suppressed entirely, not
-  estimated. A confident wrong total is worse than no total.
-- **Prescription-only items never enter the cart.** They route to the refill
-  path with a plain sentence saying why. This needs `supply_channel` on
-  `MedicationRecord` — a **contract change: stop and flag it** before writing.
-- `SKILL.md` and `README.md` gain a section in the same cycle.
+- Scheduled daily, **and** caregiver-triggered. Whether an unattended run clears
+  the permission dialog is `[UNKNOWN]`; write for both answers.
+- The chain is `medication_runout.py` → `pharmacy_cart.py`, and the skill does
+  **no arithmetic between them**. It passes the forecast through verbatim,
+  because the cart refuses one whose `audit_hash` does not match.
+- `purchase` is built by reading `supply_channel` off `household/medication.json`.
+  A medicine with none recorded is **left out of the map**, never defaulted.
+- **Dual output.** `out/family/` gets the cart and the totals; `out/senior/` gets
+  a large-print card in her language, second person, every acronym expanded. One
+  without the other is an unfinished run.
+- Append one line to `out/senior/shared_log.jsonl` — what was shared, with whom,
+  when.
+- Do not build `daily-brief` in the same cycle. One item per cycle.
