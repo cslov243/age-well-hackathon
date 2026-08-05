@@ -1,0 +1,15 @@
+{
+  "record_type": "ClinicSnapshotManifest",
+  "as_of": "2026-08-04",
+  "fetched_at": "2026-08-04T22:30:03+08:00",
+  "source_url": "https://s3.ap-southeast-1.amazonaws.com/blobs.data.gov.sg/d_548c33ea2d99e29ec63a7cc9edcccedc.geojson",
+  "source_kind": "dataset_download",
+  "dataset_id": "d_548c33ea2d99e29ec63a7cc9edcccedc",
+  "attribution": "Ministry of Health, CHAS Clinics, data.gov.sg",
+  "record_count": 1192,
+  "features_in_source": 1193,
+  "rejected_count": 1,
+  "clinics_without_mapped_name": 0,
+  "content_hash": "sha256:6f7f1c8c45a778b8c1c9b1710a092881802007679f11f0a4e80ad65cf560a47c",
+  "snapshot_file": "chas-clinics-2026-08-04.json"
+}
