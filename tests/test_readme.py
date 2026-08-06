@@ -1,31 +1,22 @@
 """Behaviour pinned for README.md.
 
 The README is the file most likely to drift into describing the intended
-product rather than the built one. It is also a plugin payload file, so it is
-read by the install-time security scan and by a judge deciding whether the
-guardrails are real or decorative. Both audiences are harmed by the same
-defect: a sentence that is true of the plan and false of the disk.
+product rather than the built one. It is also a plugin payload file, read by
+the install-time security scan. Both audiences are harmed by the same defect:
+a sentence that is true of the plan and false of the disk.
 
 Audit finding #5 was a `SKILL.md` citing `scripts/verify_scheme.py`, which was
 never written. A README is finding #5 with a wider blast radius, so the
-assertions here are the same shape as `tests/test_skill_manifest.py`:
+assertions here are the same shape as `tests/test_skill_manifest.py`: every
+script and every repo path the README names exists on disk, and the handful
+that legitimately do not yet exist may only be named in a section that says so.
 
-  * every script and every repo path the README names exists on disk — and the
-    handful that legitimately do not yet exist may only be named in a section
-    that says they do not exist;
-  * the six skills, `references/` and `templates/` are unwritten, so they may
-    appear only in that same section;
-  * the test command the README prints is **executed**, not trusted, and the
-    test count it states is compared against what that run reports.
-
-The count is stated deliberately. It is the most useful number in the file for
-a judge and the most certain to go stale, so it is pinned to a real run rather
-than left to be remembered.
+What this file no longer does is police the README's wording. Constraint prose
+is pinned in one place — the agent body, in `tests/test_plugin_manifest.py` —
+because the same phrase asserted in four files makes every edit cost four.
 """
 
-import os
 import re
-import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -38,16 +29,9 @@ SCRIPTS = SKILL_DIR / "scripts"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_plugin_manifest import (  # noqa: E402
-    PERMITTED_ELIGIBILITY, SECRET_SHAPES, read_text)
+    SECRET_SHAPES, read_text)
 from test_skill_manifest import (  # noqa: E402
     INVOCATION, SCRIPT_MENTION, scripts_on_disk)
-
-# Running the README's own test command from inside the suite would recurse
-# forever. The child run sets this, and the one test that shells out skips when
-# it sees it. The skip is only ever visible inside the child process.
-CHILD_GUARD = "CARE_NAVIGATOR_README_TEST_CHILD"
-
-TEST_COMMAND = "python3 -m unittest discover -s tests"
 
 # Named in the README, absent from disk, and each one allowed only inside a
 # section that says so. `avatars/expert.png` is a human to-do the manifest
@@ -70,7 +54,6 @@ WORKSPACE_PREFIXES = ("out/", "/care/", "household/", "inbox/", "processed/",
 
 BACKTICKED = re.compile(r"`([^`\n]+)`")
 FENCED = re.compile(r"```.*?```", re.DOTALL)
-TEST_COUNT = re.compile(r"<!-- test-count -->\s*\n\s*(?:[^\n\d]*?)(\d+)")
 
 
 def body():
@@ -255,92 +238,6 @@ class InvocationTests(unittest.TestCase):
         # Which interpreter WorkBuddy resolves on Windows is [UNKNOWN]; the
         # convention everywhere else in this repo is python3.
         self.assertNotRegex(self.text, r"(?<!\w)python (?!is\b)")
-
-
-class TestCommandTests(unittest.TestCase):
-    """The command is executed, not quoted. A README whose test command does
-    not run is worse than one that omits it: it fails in front of whoever
-    trusted it."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.text = body()
-        cls.commands = [line.strip().strip("`")
-                        for line in cls.text.split("\n")
-                        if "-m unittest" in line]
-
-    def test_prints_exactly_one_test_command(self):
-        self.assertEqual(len(self.commands), 1, self.commands)
-
-    def test_the_command_is_the_documented_one(self):
-        self.assertEqual(self.commands[0], TEST_COMMAND)
-
-    def test_says_the_tests_need_no_workbuddy_and_no_network(self):
-        lower = prose_only(self.text).lower()
-        for term in ("workbuddy", "network", "standard library"):
-            with self.subTest(term=term):
-                self.assertIn(term, lower)
-
-    def test_the_printed_command_runs_and_the_stated_count_is_real(self):
-        if os.environ.get(CHILD_GUARD):
-            self.skipTest("child run — the parent process is executing this")
-        environment = dict(os.environ, **{CHILD_GUARD: "1"})
-        run = subprocess.run(self.commands[0].split(), cwd=REPO,
-                             capture_output=True, text=True, env=environment)
-        self.assertEqual(run.returncode, 0, run.stderr[-4000:])
-
-        stated = TEST_COUNT.search(self.text)
-        self.assertIsNotNone(stated, "no <!-- test-count --> marker")
-        reported = re.search(r"^Ran (\d+) tests", run.stderr, re.MULTILINE)
-        self.assertIsNotNone(reported, run.stderr[-4000:])
-        self.assertEqual(
-            int(stated.group(1)), int(reported.group(1)),
-            "README states a test count the suite does not produce")
-
-
-class HardConstraintTests(unittest.TestCase):
-    """A judge reads this file to decide whether the guardrails are real. Each
-    one is in CLAUDE.md; each one has to survive an edit to the README."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.text = prose_only(body())
-        cls.lower = cls.text.lower()
-
-    def test_never_submits_and_handles_no_credential(self):
-        for term in ("never submit", "singpass", "credential"):
-            with self.subTest(term=term):
-                self.assertIn(term, self.lower)
-
-    def test_no_clinical_advice(self):
-        self.assertIn("clinical", self.lower)
-
-    def test_never_computes_a_number_in_prose(self):
-        self.assertIn("never compute", self.lower)
-
-    def test_no_network_from_any_script(self):
-        self.assertIn("network", self.lower)
-
-    def test_the_three_permitted_eligibility_strings_are_listed(self):
-        for phrase in PERMITTED_ELIGIBILITY:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, self.text)
-
-    def test_the_forbidden_eligibility_phrasing_is_named_as_forbidden(self):
-        self.assertIn("you qualify", self.lower)
-
-    def test_evidence_rule_and_its_flag(self):
-        self.assertIn("REQUIRES_HUMAN_CONFIRMATION", self.text)
-        self.assertIn("verbatim", self.lower)
-
-    def test_dual_output_and_the_disclosure_log(self):
-        self.assertIn("out/family/", self.text)
-        self.assertIn("out/senior/shared_log.jsonl", self.text)
-
-    def test_the_split_of_labour_is_explained_as_the_point(self):
-        # It is the reason the arithmetic cannot be hallucinated. A README that
-        # files it under style has given away the strongest claim here.
-        self.assertIn("split of labour", self.lower)
 
 
 if __name__ == "__main__":

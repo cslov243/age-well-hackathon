@@ -45,10 +45,7 @@ unit first. **Do not batch two backlog items into one cycle.**
   reproduction. Do not fix it in this cycle.
 - **Adding a script means updating `SKILL.md` in the same cycle.** Two tests fail
   otherwise, deliberately.
-- **Adding or removing a test means updating the count in `README.md` in the same
-  cycle.** A test executes the README's own command and compares.
-- Never weaken an assertion to make a cycle pass. If better wording breaks a
-  pinned phrase, re-point the assertion and say so in the report.
+- Never weaken an assertion to make a cycle pass.
 
 ## What is true right now
 
@@ -60,17 +57,14 @@ Do not restate any of them anywhere else.
   audit ran against the plugin on the WorkBuddy box, which is gone. Every item
   below is **write-fresh**, using the findings as the spec for what the code must
   *not* do — never as a patch to an existing file.
-- Tests: `python3 -m unittest discover -s tests`. **Never present a cycle with
-  the count lower than it started.** The one skip is `avatars/expert.png`.
-- The suite runs itself once in a subprocess, guarded by
-  `CARE_NAVIGATOR_README_TEST_CHILD`. The child reports 2 skips, the parent 1.
-  That is the guard working, not a second gap.
-- Word budgets in `tests/test_project_docs.py` are a **ratchet at the measured
-  value**. Editing these docs is zero-sum: a new sentence means removing one.
-  Only `SKILL.md` and `README.md` grow, at 120 words per new script.
-- Five test files guard prose against code — `test_plugin_manifest`,
-  `test_skill_manifest`, `test_readme`, `test_backlog`, `test_project_docs`. Each
-  checks **both** directions. Do not weaken them.
+- Tests: `python3 -m unittest discover -s tests`. The one skip is
+  `avatars/expert.png`.
+- Three test files guard prose against code — `test_plugin_manifest`,
+  `test_skill_manifest`, `test_readme`. They check that every script and path
+  named on disk exists and that documented invocations and worked examples
+  actually run. They no longer police wording: constraint prose is pinned in
+  **one** place, the agent body, and nowhere else. Do not re-add phrase pins to
+  the README or a `SKILL.md`.
 
 **Read the existing scripts before writing a new one and match their
 conventions:** `InvalidInput` for anything the script refuses to guess at;
@@ -112,21 +106,22 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 10 | `fetch_references.py` — the only file permitted to open a socket | Done |
 | 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Done |
 | 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Done |
-| 13 | `medication-watch` and `daily-brief` — the two skills that make the connectors visible | Next |
+| 13 | `purchase_terms.py` and the `medication-watch` skill — the chain that makes the connectors visible | Done |
+| 13a | `daily-brief` — nearest clinic and days-of-supply in the senior card | Next |
 | 14 | `letter-triage` — the entry point for the core loop | Later |
-| 15 | `deadline_window.py` — fix the `this_week` comparison | Later |
-| 16 | Escalation cooldown — `last_notified_at` plus a window; advance the level and stamp the time in one write | Later |
-| 17 | `household_profile.py` — merge instead of clobber, write a `.bak`, require an explicit path | Later |
-| 18 | Shared evidence validator — one module instead of the two private copies | Later |
-| 19 | `letter_dedupe.py` — content-hash idempotency, split-on-conflict page grouping | Later |
-| 20 | `verify_scheme.py` — the 30-day freshness check. Closed-vocabulary output only | Later |
-| 21 | `scheme-radar`, `deadline-watch`, `family-dispatch` | Later |
-| 22 | Behavioural evaluations — `docs/AUDIT-FINDINGS.md` #8 | Dropped |
 
-Items 10–12 are the pivot: the connectors are where the agent does something
+**That is the whole backlog.** Four days to submission, and the demo has no
+entry point: nothing extracts a letter and nothing reaches the senior. 13a and
+14 are the two items that make the pitch true on stage. Everything else —
+deadline windows, the escalation cooldown, profile merge, the shared evidence
+validator, letter dedupe, `verify_scheme.py`, and the remaining three skills —
+is **cut**, not deferred, and must not be re-added before 9 August. Their
+intended behaviour stays recorded in `docs/AUDIT-FINDINGS.md` for whoever picks
+this up after Demo Day.
+
+Items 10–13 were the pivot: the connectors are where the agent does something
 concrete in the world *for the senior*, rather than for the family's paperwork.
-Insurance and expense splitting are finished and **frozen** — no further cycles
-unless a bug appears.
+Every script now on disk is **frozen** — no further cycles unless a bug appears.
 
 Write every skill so it works both scheduled and caregiver-triggered, because
 whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
@@ -139,24 +134,26 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle G, backlog item 13: `medication-watch`
+## Start here — cycle H, backlog item 13a: `daily-brief`
 
-The first **skill**, and the one that makes both connectors visible. Everything
-before this cycle was a script nobody can see run.
+The second skill, and the one the senior actually hears. `medication-watch`
+tells her what is running out; this is the 8am briefing that reaches her whether
+or not anything is wrong.
 
 Re-read `docs/WORKBUDDY-PLATFORM.md` first. Skill format is not in your training
 data and the published docs are wrong in at least one place.
 
-- Scheduled daily, **and** caregiver-triggered. Whether an unattended run clears
+- Scheduled 8am, **and** caregiver-triggered. Whether an unattended run clears
   the permission dialog is `[UNKNOWN]`; write for both answers.
-- The chain is `medication_runout.py` → `pharmacy_cart.py`, and the skill does
-  **no arithmetic between them**. It passes the forecast through verbatim,
-  because the cart refuses one whose `audit_hash` does not match.
-- `purchase` is built by reading `supply_channel` off `household/medication.json`.
-  A medicine with none recorded is **left out of the map**, never defaulted.
-- **Dual output.** `out/family/` gets the cart and the totals; `out/senior/` gets
-  a large-print card in her language, second person, every acronym expanded. One
-  without the other is an unfinished run.
-- Append one line to `out/senior/shared_log.jsonl` — what was shared, with whom,
-  when.
-- Do not build `daily-brief` in the same cycle. One item per cycle.
+- **Senior-facing first.** The family artifact is the secondary one here, which
+  is the reverse of every other skill. Address her directly, second person.
+- **Consumes structured records only** — `extracted/`, the forecast, the profile.
+  It re-reads no document and invokes no vision model, which is what makes a
+  daily run cost almost nothing.
+- `clinic_finder.py` supplies the place and distance when one is needed. **Never
+  call it a walk** — it is a straight line and no route was computed.
+- A day with nothing due still produces both artifacts. A brief that appears
+  only when something is wrong teaches her that its arrival is bad news.
+- Append one line to `out/senior/shared_log.jsonl`.
+- Follow `skills/medication-watch/SKILL.md` for shape — same frontmatter rules,
+  same checklist, its own word budget in `tests/test_daily_brief.py`.

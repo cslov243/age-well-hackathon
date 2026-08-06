@@ -176,6 +176,7 @@ Each medication:
 | `count_basis` | enum | `fixed_daily` only. **Required, no default** — see below. |
 | `lead_time_days` | int ≥ 0 \| absent | `fixed_daily` only. Overrides the file default. |
 | `supply_channel` | enum \| absent | `general_sale` \| `pharmacist_only` \| `prescription_only`. Added 5 August 2026 — see below. |
+| `purchase` | object \| absent | Optional pack size and price. Added 5 August 2026 — see below. |
 
 ### `supply_channel` — added for `pharmacy_cart.py`, additive
 
@@ -188,6 +189,31 @@ That asymmetry is the whole point. Getting `general_sale` wrong puts a
 prescription medicine in a shopping cart; getting `unknown` wrong costs one
 question to the caregiver. The two mistakes are not the same size, so the
 default goes to the cheap one.
+
+### `purchase` — added for `purchase_terms.py`, additive
+
+Optional, one per medication. `medication_runout.py` neither reads nor hashes
+it, so the forecast and its `audit_hash` are unchanged and no existing consumer
+moves — the same additive shape `supply_channel` took.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `pack_size` | int ≥ 1 \| absent | Units per pack. |
+| `pack_price` | Decimal string \| absent | Requires `pack_size`. |
+| `unit_price` | Decimal string \| absent | Mutually exclusive with `pack_price`. |
+| `currency` | string | **Required with a price.** |
+| `source` | string | **Required with a price.** Where the figure came from. |
+
+An unrecognised key inside the block is **refused**, unlike an unrecognised key
+at the top of the file. The asymmetry is deliberate: the top level is shared
+with `medication_runout.py` and must tolerate fields it gains, while a typo
+inside `purchase` silently drops a price and the cart then suppresses its total
+for a reason nobody can trace back to a misspelling.
+
+A `purchase` block recorded against a medication with no `supply_channel` is
+refused. Without a channel it can never enter a cart, so the price would be
+accepted and never used — and the caregiver who typed it would never learn it
+did nothing.
 
 
 `counted_on`, `count_basis` and `lead_time_days` are **rejected** on a `prn`
@@ -333,6 +359,37 @@ reason, and `record_count` plus `rejected_count` must add up to
 Coordinates are strings for the same reason money is `Decimal`: nothing
 downstream should inherit binary floating-point error it did not ask for.
 `clinic_finder.py` converts to float at the trig and nowhere else.
+
+---
+
+## PurchaseTermsMap
+
+Written by `scripts/purchase_terms.py`. Added 5 August 2026. Input is a
+`MedicationRecord` document — the same `household/medication.json` the forecaster
+reads, unchanged.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `purchase` | object | Keyed by medication id. Feeds `pharmacy_cart.py` verbatim. |
+| `omitted[]` | list | `{id, name, reason, summary}`. Reason is always `no_supply_channel_recorded`. |
+| `counts` | object | `with_terms + omitted == medications`. |
+
+Each row carries `supply_channel` and, only where recorded, `form_plural`,
+`pack_size` and a price. Nothing is defaulted and nothing is computed — there is
+no arithmetic in the script at all, because quantities and totals are
+`pharmacy_cart.py`'s work and a second copy would be a second answer.
+
+### Why this is a script
+
+`pharmacy_cart.py` refuses to guess a supply channel, but something has to hand
+it the map. If that something is a model transcribing a field by hand, the guard
+is worth exactly what the transcription is worth: a hallucinated `general_sale`
+puts a prescription medicine in a cart, and nothing downstream can notice,
+because the cart cannot tell a copied value from an invented one.
+
+A medicine with no `supply_channel` is **left out of the map**, never given one.
+An unrecognised channel raises rather than being mapped to the nearest legal
+value — `otc` is not `general_sale`.
 
 ---
 

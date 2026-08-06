@@ -10,7 +10,8 @@
     "./agents/care-navigator.md"
   ],
   "skills": [
-    "./skills/care-coordinator-toolkit"
+    "./skills/care-coordinator-toolkit",
+    "./skills/medication-watch"
   ],
 
   "expertType": "agent",

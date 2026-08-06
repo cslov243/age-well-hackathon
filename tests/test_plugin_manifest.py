@@ -282,8 +282,14 @@ class AgentFrontmatterTests(unittest.TestCase):
         self.assertIsInstance(self.fm["maxTurns"], int)
         self.assertGreater(self.fm["maxTurns"], 0)
 
-    def test_skills_wires_the_toolkit(self):
-        self.assertEqual(self.fm["skills"], ["care-coordinator-toolkit"])
+    def test_skills_wires_every_skill_in_the_plugin(self):
+        # Was pinned to the toolkit alone, when it was the only skill. The
+        # assertion that matters is not "which skill" but that the agent and
+        # the manifest agree: a skill shipped in the plugin and left out of the
+        # agent's `skills:` is installed, scanned, and never reachable.
+        declared = [Path(rel).name for rel in self.m["skills"]]
+        self.assertEqual(sorted(self.fm["skills"]), sorted(declared))
+        self.assertIn("care-coordinator-toolkit", self.fm["skills"])
 
     def test_every_named_skill_exists_on_disk(self):
         for name in self.fm["skills"]:

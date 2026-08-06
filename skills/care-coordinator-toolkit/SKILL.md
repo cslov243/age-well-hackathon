@@ -5,7 +5,7 @@ description: "Runs deterministic scripts that produce every number in a care tas
 
 # Care coordinator toolkit
 
-Five scripts. Between them they own **every number this expert reports.**
+Six scripts. Between them they own **every number this expert reports.**
 
 ## The rule
 
@@ -24,6 +24,7 @@ python3 scripts/medication_runout.py --input <input.json> [--output <output.json
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
 python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
+python3 scripts/purchase_terms.py --input <input.json> [--output <output.json>]
 python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 ```
 
@@ -162,6 +163,22 @@ days old still answers, marked `stale`.
 route was worked out, and nothing says whether the way is step-free. Quote the
 record's `summary`, which says so. `programmes` is a dataset fact and settles
 nothing about any person.
+
+## `purchase_terms.py` — how each medicine is obtained
+
+**Use when** a cart is about to be drafted. It builds the `purchase` map
+`pharmacy_cart.py` reads, from `household/medication.json`.
+
+**Requires:** `medications`, even when `[]`.
+
+**Never write this map by hand.** `supply_channel` is copied from the household
+file, never inferred from a medicine's name. A medicine with none recorded is
+**left out**, so the cart reports it unknown and asks — the one field where a
+confident guess puts a prescription medicine in a shopping cart.
+
+An optional `purchase` block carries `pack_size` and a price. A price needs a
+`currency` **and** a `source`; recording one against a medicine with no channel
+raises, rather than being accepted and never used.
 
 ## `pharmacy_cart.py` — a cart draft a person pays for
 

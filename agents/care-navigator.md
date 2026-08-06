@@ -8,7 +8,7 @@ profession:
   en: "Family Care Coordinator"
   zh: "家庭照护协调员"
 maxTurns: 50
-skills: [care-coordinator-toolkit]
+skills: [care-coordinator-toolkit, medication-watch]
 ---
 
 # Care Navigator
@@ -45,6 +45,7 @@ You do exactly two things: **extract structured facts from documents**, and
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding, documents still to gather. |
 | `expense_split.py` | Dividing a care cost between family members, by weight or ratio. |
 | `clinic_finder.py` | The nearest clinics to a point, straight-line, from a dated snapshot. Never a walking route. |
+| `purchase_terms.py` | How each medicine is obtained, copied from the household file. Never inferred. |
 | `pharmacy_cart.py` | A cart draft from a run-out forecast. Never a purchase: a person checks it and pays. |
 
 Invoke each as

@@ -83,7 +83,7 @@ produces a confident wrong number.
 |-------|---------|--------|
 | `letter-triage` | on file arrival | No |
 | `daily-brief` | scheduled 8am | No |
-| `medication-watch` | scheduled daily | No |
+| `medication-watch` | scheduled daily | **Yes** |
 | `scheme-radar` | scheduled weekly | No |
 | `deadline-watch` | scheduled daily | No |
 | `family-dispatch` | event-driven | No |
@@ -96,15 +96,16 @@ Whether unattended scheduled runs clear WorkBuddy's permission dialog is
 
 ## What exists
 
-Three scripts, the manifest, the agent, the toolkit `SKILL.md`, the README.
-Backlog and per-file test counts: `LOOP-PROMPT.md`.
+Six scripts, the manifest, the agent, the toolkit `SKILL.md`, the
+`medication-watch` skill, the README. Backlog: `LOOP-PROMPT.md`.
 
-- `python3 -m unittest discover -s tests` runs everything. The total is stated in
-  `README.md` and pinned by a test — a cycle that changes it updates the README.
+- `python3 -m unittest discover -s tests` runs everything.
 - The one skip is `avatars/expert.png`, a **human to-do**. Not stubbed: a
   placeholder passes silently, a skip stays visible.
-- The hard constraints are restated in `agents/care-navigator.md`, `SKILL.md` and
-  `README.md`, each pinned by tests. Change all, or none.
+- **`agents/care-navigator.md` is the normative copy of the hard constraints**,
+  and the only one a test pins. `SKILL.md` carries the ones that bear on
+  invoking a script; the README explains them to a reader. Those two are prose
+  and may be edited freely — do not add tests that pin their wording.
 
 ## Code conventions
 

@@ -12,16 +12,18 @@ It prepares. A person acts. That line is the product, not a caveat on it.
 
 ## What is installed
 
-An expert plus one skill, in a single plugin:
+An expert plus two skills, in a single plugin:
 
 - `.codebuddy-plugin/plugin.json` — marketplace and display metadata.
 - `agents/care-navigator.md` — the expert: who it is for, how it talks, and the
   rules it does not break.
 - `skills/care-coordinator-toolkit/SKILL.md` — when and how to invoke each
   script, and what the toolkit refuses to do.
-- `skills/care-coordinator-toolkit/scripts/` — five deterministic scripts.
+- `skills/care-coordinator-toolkit/scripts/` — six deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
   fetched offline by a person and read from disk.
+- `skills/medication-watch/SKILL.md` — the daily supply check and the pharmacy
+  cart draft. Runs on a schedule and on request; ships no scripts of its own.
 
 There is nothing to install beyond copying the plugin in. The scripts are
 Python 3, standard library only: no `pip` step, no third-party package, no
@@ -53,7 +55,7 @@ reproduced months later. And the scheduled work costs almost nothing in tokens,
 because it is arithmetic over structured records rather than a model re-reading
 documents.
 
-## The five scripts
+## The six scripts
 
 | Script | What it computes |
 |---|---|
@@ -61,15 +63,17 @@ documents.
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding or refundable, documents still to gather. |
 | `expense_split.py` | A shared care cost divided between family members, by weight or by ratio, with the residual cent accounted for. |
 | `clinic_finder.py` | The nearest clinics to a point in a dated snapshot, by straight-line distance rounded to 10 m. |
+| `purchase_terms.py` | How each medicine is obtained, copied from the household file so no model ever infers it. |
 | `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
 
-All five take the same form:
+All six take the same form:
 
 ```
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
 python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
+python3 scripts/purchase_terms.py --input <input.json> [--output <output.json>]
 python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 ```
 
@@ -109,11 +113,8 @@ root:
 python3 -m unittest discover -s tests
 ```
 
-<!-- test-count -->
-That runs 544 tests, with one skip — the avatar file below, which turns green by
-itself once a human supplies it. The count is stated here because it is checked
-against a real run by a test; if it is wrong, the suite fails rather than the
-README quietly ageing.
+That runs 539 tests in about seven seconds, with one skip — the avatar file
+below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is
 deliberate: access to the WorkBuddy box lapsed on 3 August 2026, and code that
@@ -123,9 +124,9 @@ submission.
 ## The hard constraints
 
 These are carried in the expert body and in the skill — the two places a runtime
-reads — and pinned by tests that fail if an edit drops one. Where a rule can be
-enforced in code rather than in prose, it is: the scripts refuse bad input, and
-none of them can reach the network.
+reads. The expert body is the normative copy and a test fails if an edit drops a
+rule from it. Where a rule can be enforced in code rather than in prose, it is:
+the scripts refuse bad input, and none of them can reach the network.
 
 - **Prepare and hand off — never submit.** No form is filed, no portal is
   touched, no message is sent on anyone's behalf.
@@ -166,12 +167,13 @@ Not omissions, and not a roadmap.
   submission on someone's behalf.** There is no submission API for HealthHub or
   CHAS, and building one by automating a national digital identity for elderly
   users is the exact pattern this product is positioned against.
-- **Third-party commerce.** A pharmacy delivery would be a natural extension of
-  the medication forecast, and the honest version of it prepares a cart the
-  senior reviews and pays for herself. It is not shipped because an agent with
-  standing ability to spend an elderly person's money needs a consent model that
-  does not exist yet. Not shipping that under time pressure is the point, not the
-  excuse.
+- **Buying anything.** The pharmacy cart stops at a draft, and that is the whole
+  of what ships: `pharmacy_cart.py` prepares lines the senior reviews and pays
+  for herself. No shop is called, no payment is held, and no code path can set
+  `requires_human_checkout` false. An agent with standing ability to spend an
+  elderly person's money needs a consent model that does not exist yet, so the
+  half that would need one is not built. Stopping at the draft under time
+  pressure is the point, not the excuse.
 - **Clinical interpretation, and anything touching a Lasting Power of Attorney.**
   Those go to a qualified professional, and the expert says so.
 
@@ -180,10 +182,10 @@ Not omissions, and not a roadmap.
 Named plainly, because a README that lists intentions as features is the same
 defect as a skill citing a script that was never written.
 
-- **The six skills** — `letter-triage`, `daily-brief`, `medication-watch`,
-  `scheme-radar`, `deadline-watch`, `family-dispatch` — are **not written**. What
-  exists today is the expert, the toolkit skill, and the three scripts above. The
-  toolkit is extended as each script lands, never ahead of it.
+- **Five of the six skills** — `letter-triage`, `daily-brief`, `scheme-radar`,
+  `deadline-watch`, `family-dispatch` — are **not written**. What exists today is
+  the expert, the toolkit skill, `medication-watch`, and the six scripts above.
+  The toolkit is extended as each script lands, never ahead of it.
 - **`avatars/expert.png`** — a 1024×1024 PNG. The manifest already points at the
   path; the file is a human to-do and the test for it skips until it appears. It
   is left as a visible skip on purpose: a generated placeholder would pass
