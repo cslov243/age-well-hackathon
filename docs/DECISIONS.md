@@ -199,3 +199,59 @@ skipping until a real file lands.
 
 A generated placeholder would turn the suite green and be forgotten. A visible
 skip is the point.
+
+---
+
+## MCP is a layer, never a dependency — decided 6 August 2026
+
+**Decided:** the `.ics` file is the shipped calendar path. An MCP calendar write
+is optional, and `mcpServers` does **not** go into `.codebuddy-plugin/plugin.json`
+before 9 August. `.mcp.json` was removed from the repo the same day.
+
+Three surfaces got confused with each other, so they are separated here.
+
+| Surface | Setup for us | Setup for a user |
+|---|---|---|
+| `.ics` in `out/family/` | none | none — it imports into any calendar |
+| A claude.ai connector | none | connect Google once, in claude.ai |
+| Our own MCP server, in the plugin | Cloud project, two APIs, OAuth client, **Google verification** | consent flow, plus an "unverified app" warning until that verification lands |
+
+**The URL was never the problem.** `https://calendarmcp.googleapis.com/mcp/v1`
+is exactly what Google documents. What the documentation adds is everything
+around it: a Cloud project, both `calendar-json.googleapis.com` and
+`calendarmcp.googleapis.com` enabled, a consent screen, and our own OAuth client
+ID and secret. Google's own instruction for Claude is a custom connector
+configured in settings — not a `.mcp.json`, which has nowhere to put a client
+secret. The repo's `.mcp.json` had the right address in a form that could never
+authenticate, and it was deleted rather than completed.
+
+**Two reasons it is not completed.**
+
+**It wants a credential in the repo.** `.mcp.json` is a tracked file. This is the
+product whose entire posture is that it never touches a credential, and
+WorkBuddy security-scans plugins on install. Even where a client secret is
+low-value, this repo is the wrong place for one.
+
+**Calendar is a sensitive scope, so the cost is not ours to pay once.** An
+unverified OAuth app is capped at 100 test users and shows Google's warning
+screen. Shipping to real users means Google's verification review — weeks, not
+days. "Users configure it themselves" understates it: before a user can click
+allow, the app has to exist and be approved.
+
+**The product reason outranks both.** The users are caregivers looking after
+elderly parents, and the senior is the primary user. A calendar feature that
+opens with an OAuth consent flow has already lost the person it is for. The
+`.ics` needs no account, no permission dialog, no network and no configuration
+by anybody. It is the deliverable, not the fallback — which is also why a judge
+running a fresh install on 9 August sees a working file rather than an auth
+error.
+
+**What still works, and is the demo path.** The claude.ai Google Calendar
+connector is live in Claude Code and account-scoped, so the optional confirmed
+write is demonstrable today with no setup at all. That is the layer working as
+intended: MCP earns its place on the **handoff** side, where the model is
+legitimately the actor, and never for anything that produces a number — an MCP
+tool carries no `tool_run_id` and no `audit_hash`.
+
+**Reopen this after Demo Day**, if the plugin ever ships to users outside the
+hackathon. Adding `mcpServers` is still one line; the verification is the work.
