@@ -481,7 +481,7 @@ says `daily-brief` and `deadline-watch` "both carry" the substitution ban. Only
 
 ---
 
-## 16. A refused field is routed around rather than reported — HIGH — **FIXED**
+## 16. A refused field is routed around rather than reported — HIGH — **FIXED, THEN REVERTED — OPEN**
 
 Same run, and the reason #14 reached the caregiver at all.
 
@@ -836,7 +836,7 @@ form the default rather than the permission — a figure a script computed is
 
 ---
 
-## 22. An artifact asserts the negation of a flag the record carries — HIGH — **FIXED**
+## 22. An artifact asserts the negation of a flag the record carries — HIGH — **FIXED, THEN REVERTED — OPEN**
 
 Found 6 August 2026, cycle N, reading the family artifact against the record
 that produced it. The artifact ends:
@@ -1008,7 +1008,7 @@ result came from a script.
 
 ---
 
-## 25. The `check` call before extraction was skipped — HIGH — regression
+## 25. The `check` call before extraction was skipped — HIGH — regression, **CAUSE UNCONFIRMED**
 
 Found 6 August 2026, cycle O. `letter_record.py` ran once, in `mode: "record"`.
 The `check` call did not happen: `/tmp/record_input.json` carries
@@ -1042,3 +1042,28 @@ which is the honest cost of a fourth script in this chain and should be paid
 rather than avoided.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## Note on the cycle O revert — 6 August 2026
+
+`confirmations.py` and everything registering it were reverted at the user's
+instruction after the cycle O run showed the `check`-before-extraction
+regression (#25). The commit is `37c5bb7`, reverted rather than reset, so the
+implementation and its 35 tests are recoverable in one command.
+
+**What the revert also gave back.** #16 and #22 were both measured fixed on that
+run — #16 for the first time in four cycles, and it reached her copy. Those
+fixes are gone with it, and both findings are open again. The record of the
+measurement is kept in `evals/RESULTS.md` deliberately, so the next attempt
+starts from evidence rather than from scratch.
+
+**The regression's cause is unconfirmed and should not be treated as settled.**
+It rests on a single run by a stochastic cold agent. The plausible cause is that
+`letter-triage`'s chain grew a fourth script and its checklist a sixth step
+while step 1 still folds check, read and file into one line — but nothing has
+been measured to establish that, and case G has never been run more than once
+per cycle. **Re-measure before redesigning:** three runs of case G against the
+reverted tree, counting `letter_record.py` invocations in each. If `check` is
+skipped there too, the fourth script is not the cause and #25 is an older latent
+defect that four runs happened to hide.

@@ -39,7 +39,7 @@ FENCED = re.compile(r"```.*?```", re.DOTALL)
 
 # Invocation order: identity first, the extraction it guards second, and the
 # claim review only once there is a record with a doc_type to route on.
-CHAIN = ("letter_record.py", "insurance_claim_review.py", "confirmations.py")
+CHAIN = ("letter_record.py", "insurance_claim_review.py")
 
 # Ratchet, not a target. Lower it when the file shrinks; do not raise it.
 # Set at the measured value on 6 Aug 2026. It sits above deadline-watch because
@@ -290,24 +290,13 @@ class BothArtifactsTests(unittest.TestCase):
                 "the read-aloud fallback is not required to name the language "
                 "it is actually written in")
 
-    def test_the_checklist_runs_the_confirmation_check_before_it_writes(self):
-        # The flag reached neither artifact in two consecutive runs, and on the
-        # third the artifact asserted its negation — finding #22. Naming the
-        # flag in the checklist was not enough twice over, so the checklist now
-        # names the script that answers the question, and it has to come before
-        # the artifacts that quote it.
+    def test_the_checklist_carries_the_flag_into_her_copy(self):
+        # The flag reached neither artifact in two consecutive runs. A step
+        # that only says "write the artifact" is a step that wrote both of
+        # them, correctly, with the refusal missing from each.
         lower = self.checklist.lower()
-        self.assertIn("confirmations.py", lower)
+        self.assertIn("flag", lower)
         self.assertIn("confirm", lower)
-        self.assertLess(lower.index("confirmations.py"), lower.index("out/family/"),
-                        "the artifacts are written before the confirmation "
-                        "check that they are supposed to quote")
-
-    def test_the_prose_forbids_certifying_that_nobody_need_confirm(self):
-        # The absence of a flag is not a finding. An artifact silent about
-        # confirmation is correct; one certifying its absence is finding #22.
-        lower = prose_only(self.body).lower()
-        self.assertIn("no confirmation is needed", lower)
 
     def test_a_condition_is_never_inferred_from_a_letter(self):
         # Measured failure, eval case D, 6 Aug 2026: "your blood pressure

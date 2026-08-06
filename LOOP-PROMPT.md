@@ -147,49 +147,49 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle P: the regression, then the half-quoted ask
+## Start here — cycle O: what the artifact says about itself
 
-**Cycle O built the ninth script.** `confirmations.py` merges the flags from
-every result a run produced and answers one question — does this need a person —
-which nothing had owned before. **#22 and #16 both closed on the first
-measurement**, and #16 had survived three cycles of being told to report the
-flag. Moving the answer out of prose and into a script did in one run what three
-rules could not. That is the lesson to carry, not the script.
+**Cycle N fixed #20 and half of #21**, both in prose, with no script touched.
+The #20 rule went into `agents/care-navigator.md` rather than only into
+`letter-triage`, because three of the four skills have never been measured on
+it and all four inherit the normative copy. `letter-triage/SKILL.md` paid for
+its half by cutting duplication: still exactly 991 words, ratchet unmoved.
 
-**It also cost a regression.** Read the cycle O block in `evals/RESULTS.md`
-before picking anything.
+**Case G came back pass / pass / fail again, and the failure moved up a level.**
+No invented date anywhere — that is #20 closed on one clean measurement. But the
+family artifact now certifies `**Status:** No human confirmation required` over
+a record carrying `REQUIRES_HUMAN_CONFIRMATION`. Read the cycle N block in
+`evals/RESULTS.md` before picking anything.
 
-- **#25 — the `check` call before extraction was skipped.** **Take this first.**
-  It passed in cycles L, M and N and failed here, and it is the idempotency
-  guarantee: without it a re-scanned letter files a second competing record and
-  duplicates every deadline. The instruction did not move — the chain grew a
-  fourth script and the checklist grew to six steps, and step 1 still folds
-  check, read and file into one line that reads as one action. Split it. That
-  costs words in a file with none spare, and the words should be paid.
-- **#24 — the sentence is quoted and the ask beside it is paraphrased.** The
-  artifact quoted `sentence` verbatim and rewrote `items[].ask` into a different
-  task: the script said read the letter's wording, the artifact said verify the
-  arithmetic. It also printed `30 days from 28 July = 27 August`, a derivation in
-  prose beside a script's date. Consider quoting `ask` rather than `sentence`.
-- **#21's remaining half — the offer, not the ban.** Two cycles now: her copy
-  does not attribute the balance to the letter and has never said it was worked
-  out from the page. Make the positive form the default, and put it where it
-  binds both artifacts.
-- **#23 — the run quotes hashes nothing in the workspace reproduces.** All three
-  inputs went to `/tmp` again and neither the claim review nor the confirmation
-  set was written with `--output`. Whether `--output` stops being optional is a
-  `docs/CONTRACTS.md` change — **stop and flag it**.
-- **#19 — the unknown-key hole one level up** in `insurance_claim_review.py`.
-  Two lines, the helper exists. `confirmations.py` was written with this check
-  from the start; the older script still lacks it.
+- **#22 — an artifact asserts the negation of a flag the record carries.**
+  **Take this first, and it outranks #16**, which it supersedes in severity: an
+  omitted flag costs a second look, a negated one is signed false confidence.
+  The mechanism is known — the run produced two flag sets, `letter_record.py`'s
+  and `insurance_claim_review.py`'s, the second legitimately empty, and the
+  agent generalised the second over the whole run. Two instructions, not one:
+  report every flag naming the script that raised it, and never state that no
+  confirmation is needed. Belongs in the agent file; every chained skill has
+  this shape.
+- **#21's remaining half — the offer, not the ban.** Her copy stopped saying the
+  letter states the balance and did not start saying it was worked out from the
+  page. Make the positive form the default, and state it where it binds both
+  artifacts: the family copy is where the false blanket reappeared.
+- **#23 — the run quotes an `audit_hash` nothing on disk can reproduce.**
+  Inputs written to `/tmp`, `insurance_claim_review.py` run without `--output`,
+  no `claims.json` filed. Deciding whether `--output` stops being optional is a
+  `docs/CONTRACTS.md` change — **stop and flag it** rather than making it.
+- **#19 — the unknown-key hole one level up.** `as_of` misspelled is silently
+  today. Two lines, the helper exists, and it is the last silent-wrong-number
+  path on disk.
 - **#18 — `deadline-watch` has neither half of the language rule**, and no eval
-  case has ever reached its senior copy.
+  case has ever reached its senior copy. A file that cannot fail an evaluation
+  is not passing it.
 - **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
   canonical: `household/profile.json` or `out/household_profile.json`.
 
-**Then re-run case G and read the artifacts.** Every defect in this case for
-five cycles has been invisible in the JSON and plain in the prose. **Also count
-the `letter_record.py` invocations** — that is the check that would have caught
-#25 the moment it happened.
+**Then re-run case G, and read the artifacts rather than the JSON.** Four of the
+last five defects in this case were invisible in the output files and plain in
+the prose. **Diff every `flags` array the run wrote against what the artifacts
+claim** — that is the check that would have caught #22 a cycle earlier.
 
 Every script on disk is frozen except for #19's one check.

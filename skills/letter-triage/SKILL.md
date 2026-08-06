@@ -20,7 +20,6 @@ letter_record.py          --input <check.json>  --records <extracted/>
                           ... you read the pages ...
 letter_record.py          --input <record.json> --records <extracted/>
 insurance_claim_review.py --input <claims_input.json> --output <claims.json>
-confirmations.py          --input <confirm_input.json>
 ```
 
 `mode` has no default. `"check"` hands over `source_files` alone and answers
@@ -51,9 +50,9 @@ path — `deadline`, `amounts[0]` — exactly as the page prints it.
 - **A value the script refused is not a value.** The refusal belongs to the
   number, not the record. It is carried into no claim, no artifact and no
   answer, and never by hand into another script.
-- **A flagged record is a correct outcome, not a failed run.** Whether a person
-  is needed is confirmations.py's answer, not yours: quote its sentence, and
-  never write that no confirmation is needed unless it said so.
+- **A flagged record is a correct outcome, not a failed run.** Name the flag in
+  both artifacts and your answer, say which fields need a person and what the
+  letter would have to show to settle them.
 
 **Grouping pages is your call; the bias is to split.** Same issuer and date is
 not one letter. Split on any conflicting date, amount or type: a duplicate costs
@@ -64,12 +63,11 @@ a notification, a merge a deadline.
 ```
 - [ ] 1. Check, read the pages, then file into extracted/ and read the JSON
 - [ ] 2. Move the pages to processed/ — they are never re-read
-- [ ] 3. Run confirmations.py over every result this run produced
-- [ ] 4. Write the family artifact under out/family/ — the confirmations
-         sentence quoted, what the letter wants, by when, its audit_hash
-- [ ] 5. Write her copy under out/senior/ — what she must confirm, what it says,
+- [ ] 3. Write the family artifact under out/family/ — every flag, what the
+         letter wants, by when, what was left null, its audit_hash
+- [ ] 4. Write her copy under out/senior/ — what she must confirm, what it says,
          what happens next; her language, large print, plain words, second person
-- [ ] 6. Append the disclosure line to out/senior/shared_log.jsonl
+- [ ] 5. Append the disclosure line to out/senior/shared_log.jsonl
 ```
 
 Read her language from `HouseholdProfile`; **never assume** it. Address her
@@ -104,7 +102,8 @@ Quote the script's `summary` rather than retelling it.
   test result. Route to a pharmacist or doctor. Nothing touching a Lasting Power
   of Attorney.
 - **Does not assert eligibility** — only `likely eligible`, `worth checking` or
-  `insufficient information`, each with `criteria as of YYYY-MM-DD`.
+  `insufficient information`, each with `criteria as of YYYY-MM-DD`. A renewal
+  letter arriving is not a decision that anything was renewed.
 - **Does not reply, submit, log in, or handle a credential** — no portal, no
   Singpass, no OTP, not even one a user volunteers. A person sends it.
 - **Does not skip her copy.** Stopping after `out/family/` is an unfinished
