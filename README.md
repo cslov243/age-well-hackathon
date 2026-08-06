@@ -12,7 +12,7 @@ It prepares. A person acts. That line is the product, not a caveat on it.
 
 ## What is installed
 
-An expert plus two skills, in a single plugin:
+An expert plus three skills, in a single plugin:
 
 - `.codebuddy-plugin/plugin.json` — marketplace and display metadata.
 - `agents/care-navigator.md` — the expert: who it is for, how it talks, and the
@@ -24,6 +24,10 @@ An expert plus two skills, in a single plugin:
   refreshed by a person and read from disk.
 - `skills/medication-watch/SKILL.md` — the daily supply check and the pharmacy
   cart draft. Runs on a schedule and on request; ships no scripts of its own.
+- `skills/daily-brief/SKILL.md` — the 8am briefing. The one skill where **she is
+  written to first** and the family copy is the secondary one. Reads structured
+  records only: no vision model, no document re-read, so a daily run is nearly
+  free.
 
 There is nothing to install beyond copying the plugin in. The scripts are
 Python 3, standard library only: no `pip` step, no third-party package, no
@@ -114,7 +118,7 @@ From the repo root:
 python3 -m unittest discover -s tests
 ```
 
-That runs 534 tests in about seven seconds, with one skip — the avatar file
+That runs 564 tests in about eight seconds, with one skip — the avatar file
 below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is
@@ -186,10 +190,11 @@ Not omissions, and not a roadmap.
 Named plainly, because a README that lists intentions as features is the same
 defect as a skill citing a script that was never written.
 
-- **Five of the six skills** — `letter-triage`, `daily-brief`, `scheme-radar`,
+- **Four of the six skills** — `letter-triage`, `scheme-radar`,
   `deadline-watch`, `family-dispatch` — are **not written**. What exists today is
-  the expert, the toolkit skill, `medication-watch`, and the six scripts above.
-  The toolkit is extended as each script lands, never ahead of it.
+  the expert, the toolkit skill, `medication-watch`, `daily-brief`, and the six
+  scripts above. The toolkit is extended as each script lands, never ahead of
+  it.
 - **`avatars/expert.png`** — a 1024×1024 PNG. The manifest already points at the
   path; the file is a human to-do and the test for it skips until it appears. It
   is left as a visible skip on purpose: a generated placeholder would pass

@@ -1,0 +1,18 @@
+{
+  "senior": {
+    "name": "Tan Ah Kim",
+    "preferred_name": "Ah Kim",
+    "language": "hokkien",
+    "age": 74,
+    "mobility_aids": ["walking stick"],
+    "chronic_conditions": []
+  },
+  "members": [
+    {"id": "wei", "name": "Wei", "role": "daughter", "language": "en"},
+    {"id": "mei", "name": "Mei", "role": "daughter", "language": "en"},
+    {"id": "jun", "name": "Jun", "role": "son", "language": "zh"}
+  ],
+  "flat_type": "3-room",
+  "schemes_held": [],
+  "helper_present": false
+}

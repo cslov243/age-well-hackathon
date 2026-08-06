@@ -23,6 +23,7 @@ marked `Rewritten` was written fresh here and tested, not repaired.
 | 8 | No behavioural evaluation of any skill exists | Guarded — `evals/` |
 | 9 | `SKILL.md` documents `split_rule` as a string; the script needs an object | Open |
 | 10 | Reporting instructions are ignored while refusals are obeyed | Open |
+| 11 | `HouseholdProfile` has two different paths | Open — needs a decision |
 
 `Open` items are on the backlog in `LOOP-PROMPT.md`. #8 was dropped as
 unbuildable offline and reopened on 6 August in the form that is buildable:
@@ -269,3 +270,32 @@ Fix candidate: give reporting rules the same shape as refusals — a short,
 headed, bulleted block per script, phrased as an instruction rather than as an
 explanation. Do not fix by adding a test; no test reads English, which is how
 this survived 539 of them.
+
+## 11. `HouseholdProfile` has two different paths
+
+Found 6 August 2026, writing the `daily-brief` fixture.
+
+Two files disagree about where the single source of truth lives:
+
+```
+CLAUDE.md:72        household/      profile.json, medication.json
+CONTRACTS.md:442    Single source of truth. Lives at `out/household_profile.json`
+```
+
+`out/` is the artifact tree — `out/family/`, `out/senior/` — so a profile there
+puts an input among the outputs, and `household/` is where the workspace layout
+says inputs live. `skills/daily-brief/SKILL.md` follows `CLAUDE.md`.
+
+This is not cosmetic. Every skill reads the profile "at the top of every
+session" for her language, so a skill that looks in the wrong place finds
+nothing and either asks a question it should not need to ask, or defaults — and
+defaulting her language to English is the failure the product exists to prevent.
+
+Nothing is broken today because no script takes the profile as input yet.
+`daily-brief` is the first consumer, and `household_profile.py` (merge instead
+of clobber, finding #7) would be the second.
+
+**Not fixed here.** `LOOP-PROMPT.md` requires a change that alters
+`docs/CONTRACTS.md` to be flagged rather than quietly reconciled on both sides.
+Decide which path is canonical, then change one file and every reference to it
+in the same cycle.

@@ -83,7 +83,7 @@ produces a confident wrong number.
 | Skill | Trigger | Built? |
 |-------|---------|--------|
 | `letter-triage` | on file arrival | No |
-| `daily-brief` | scheduled 8am | No |
+| `daily-brief` | scheduled 8am | **Yes** |
 | `medication-watch` | scheduled daily | **Yes** |
 | `scheme-radar` | scheduled weekly | No |
 | `deadline-watch` | scheduled daily | No |
@@ -98,7 +98,8 @@ Whether unattended scheduled runs clear WorkBuddy's permission dialog is
 ## What exists
 
 Six scripts, the manifest, the agent, the toolkit `SKILL.md`, the
-`medication-watch` skill, the README. Backlog: `LOOP-PROMPT.md`.
+`medication-watch` and `daily-brief` skills, the README. Backlog:
+`LOOP-PROMPT.md`.
 
 - `python3 -m unittest discover -s tests` runs everything.
 - The one skip is `avatars/expert.png`, a **human to-do**. Not stubbed: a

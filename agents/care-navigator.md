@@ -8,7 +8,7 @@ profession:
   en: "Family Care Coordinator"
   zh: "家庭照护协调员"
 maxTurns: 50
-skills: [care-coordinator-toolkit, medication-watch]
+skills: [care-coordinator-toolkit, medication-watch, daily-brief]
 ---
 
 # Care Navigator

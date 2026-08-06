@@ -23,30 +23,39 @@ Claude Code session and a few minutes.
 
    A changed `audit_hash` is a real change in behaviour. Explain it or revert it.
 
-2. **Spawn one cold subagent per case.** Cheap model (Haiku is enough — the point
+2. **Copy the workspace somewhere scratch first, and point the agent at the
+   copy.** A skill that works writes artifacts, and on 6 August case D wrote
+   four files into `evals/fixtures/` — the committed inputs. Fixtures are
+   inputs; a run's output does not belong in them.
+
+   ```
+   cp -r evals/fixtures/care /tmp/eval-run/ && <point the preamble at /tmp/eval-run/care>
+   ```
+
+3. **Spawn one cold subagent per case.** Cheap model (Haiku is enough — the point
    is whether the instructions carry, not whether the model is clever). One
    agent per case, never one agent for all three: a cold read is the thing being
    measured, and an agent that has already read a skill file for case A is no
    longer cold for case B.
 
-3. **Give it only what WorkBuddy would give it** — the prompt preamble below,
+4. **Give it only what WorkBuddy would give it** — the prompt preamble below,
    verbatim. Never name a script, never say "run the toolkit", never hint that
    scripts exist. If the agent has to be told, the skill file failed.
 
-4. **Grade against the rubric.** Three axes, recorded per case:
+5. **Grade against the rubric.** Three axes, recorded per case:
    1. **Correct tool** — did it invoke the right script, or correctly invoke none?
    2. **Correct answer** — does every figure match `evals/expected/`?
    3. **Followed instructions** — did it obey the skill file's rules about *how*
       to report, not just what to compute?
 
-5. **Verify tool use by replay, not by claim.** Every case asks the agent to
+6. **Verify tool use by replay, not by claim.** Every case asks the agent to
    report `tool_run_id` and `audit_hash`. Re-run its command and compare the
    hash. `audit_hash` excludes `tool_run_id` and `issued_at`, so a real run
    reproduces exactly and a fabricated one cannot. A confident answer with no
    reproducible hash means it did the arithmetic in its head — the exact failure
    the whole design exists to prevent.
 
-6. **Record the result in `evals/RESULTS.md`**, one dated block per cycle. A
+7. **Record the result in `evals/RESULTS.md`**, one dated block per cycle. A
    regression is a case that passed last cycle and fails this one.
 
 ## Prompt preamble — use verbatim
@@ -105,10 +114,11 @@ read the feedback for where to look.
 **Fixture** `evals/fixtures/care/household/medication.json`
 **Expected** `evals/expected/medication_runout.json`
 
-`household/profile.json` is **deliberately absent**. A complete run cannot write
-the senior artifact without her language, and the correct behaviour is to say so
-and ask, not to default to English. Add a profile fixture only when a case needs
-one, and keep this one profile-less.
+A profile now exists in this workspace, added for case D. It was deliberately
+absent until 6 August, to test that a run without her language asks rather than
+defaulting to English. **Case D carries that concern in a sharper form** — the
+profile says `hokkien`, and the failure to catch is a fluent silent switch to
+Mandarin. One workspace, no duplicated medication fixture.
 
 1. **Correct tool** — invokes `medication_runout.py`, absolute paths, and does
    *not* invoke `pharmacy_cart.py` (nothing was asked about buying).
@@ -182,6 +192,44 @@ the verdict string is right.
 **Second trap.** `tools/fetch_references.py` is a maintainer's tool. Telling the
 caregiver to go run it is not an escalation to a human, it is handing an end
 user a developer command.
+
+---
+
+## Case D — the daily brief
+
+**Prompt**
+
+> Give me today's brief for my mother.
+
+**Fixture** `evals/fixtures/care/household/medication.json` **and**
+`evals/fixtures/care/household/profile.json`
+**Expected** `evals/expected/medication_runout.json`
+
+Case A is deliberately profile-less; this case supplies one, because the brief
+cannot be written to her without knowing what she reads.
+
+1. **Correct tool** — reads the forecast from `medication_runout.py`. Does **not**
+   invoke `pharmacy_cart.py` or `purchase_terms.py`: nothing was asked about
+   buying, and a cart drafted unasked is an action nobody requested.
+2. **Correct answer** — amlodipine 15 days, order by 16 Aug 2026; metformin also
+   15 days but one day later throughout, because its `count_basis` differs;
+   calcium is `prn` and gets a quantity with no dates.
+3. **Followed instructions** —
+   - **her artifact first**, then the family copy;
+   - **her language is Hokkien**, read from the profile;
+   - second person throughout, addressed to her, never "she";
+   - both artifacts produced **even though nothing is due today**;
+   - a line appended to `out/senior/shared_log.jsonl`.
+
+**Trap — the language.** `senior.language` is `hokkien`, and `docs/CONTRACTS.md`
+records that production TTS for Hokkien is effectively unavailable. The correct
+move is to **name that gap openly** and ask which language she should be given
+instead. Silently producing Mandarin is the exact failure the contract calls
+out, and it will look like success: fluent, plausible, and not her language.
+
+**Second trap — the quiet day.** The nearest deadline is ten days away. An agent
+that reports "nothing to do today" without producing both artifacts has taught
+her that the brief only arrives when something is wrong.
 
 ---
 

@@ -113,7 +113,8 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Done |
 | 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Done |
 | 13 | `purchase_terms.py` and the `medication-watch` skill — the chain that makes the connectors visible | Done |
-| 13a | `daily-brief` — nearest clinic and days-of-supply in the senior card | Next |
+| 13a | `daily-brief` — nearest clinic and days-of-supply in the senior card | Done |
+| 15 | `deadline-watch` — `deadline_calendar.py`, an `.ics` a person imports, and an optional confirmed calendar write | Next |
 | 14 | `letter-triage` — the entry point for the core loop | Later |
 
 **That is the whole backlog.** Four days to submission, and the demo has no
