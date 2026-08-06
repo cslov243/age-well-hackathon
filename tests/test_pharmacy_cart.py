@@ -775,15 +775,5 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(done.returncode, 2)
 
 
-class NoNetworkTests(unittest.TestCase):
-
-    def test_the_script_imports_nothing_that_reaches_the_network(self):
-        source = SCRIPT.read_text(encoding="utf-8")
-        for banned in ("urllib", "socket", "http.client", "requests",
-                       "ssl", "smtplib"):
-            with self.subTest(banned=banned):
-                self.assertNotIn(f"import {banned}", source)
-
-
 if __name__ == "__main__":
     unittest.main()

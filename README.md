@@ -21,7 +21,7 @@ An expert plus two skills, in a single plugin:
   script, and what the toolkit refuses to do.
 - `skills/care-coordinator-toolkit/scripts/` — six deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
-  fetched offline by a person and read from disk.
+  refreshed by a person and read from disk.
 - `skills/medication-watch/SKILL.md` — the daily supply check and the pharmacy
   cart draft. Runs on a schedule and on request; ships no scripts of its own.
 
@@ -106,14 +106,15 @@ it can be bought without a prescription; an unrecorded supply channel is
 
 ## Running the tests
 
-No WorkBuddy, no network, no packages, no fixtures to download. From the repo
-root:
+No WorkBuddy, no packages, no fixtures to download, and **no network** — that
+last one is a property of the suite, not of the scripts, which may now fetch.
+From the repo root:
 
 ```
 python3 -m unittest discover -s tests
 ```
 
-That runs 539 tests in about seven seconds, with one skip — the avatar file
+That runs 534 tests in about seven seconds, with one skip — the avatar file
 below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is
@@ -126,7 +127,7 @@ submission.
 These are carried in the expert body and in the skill — the two places a runtime
 reads. The expert body is the normative copy and a test fails if an edit drops a
 rule from it. Where a rule can be enforced in code rather than in prose, it is:
-the scripts refuse bad input, and none of them can reach the network.
+the scripts refuse bad input rather than emit a plausible wrong number.
 
 - **Prepare and hand off — never submit.** No form is filed, no portal is
   touched, no message is sent on anyone's behalf.
@@ -155,9 +156,12 @@ the scripts refuse bad input, and none of them can reach the network.
 - **Every disclosure is logged.** A line appends to `out/senior/shared_log.jsonl`
   recording what was shared about her, with whom, and when. Append-only. She is
   entitled to know what has been said about her.
-- **No network access from any script, ever.** External scheme criteria are
-  fetched offline into dated snapshots by a person, on purpose. If the data is
-  not in a snapshot, the answer is that we do not have it.
+- **Every external fact carries its source.** Scripts may reach the network.
+  Anything fetched renders the URL and the time it was retrieved, the same way a
+  dated snapshot renders its date, and a source that cannot be reached falls back
+  to the snapshot marked stale rather than to a guess. Reaching a public source is
+  not logging in as her — the credential rules above are untouched by this. The
+  test suite still runs with no network at all.
 
 ## Deliberately not built
 

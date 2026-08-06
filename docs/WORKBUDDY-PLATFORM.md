@@ -234,8 +234,13 @@ server handles only fragments, discarded after use.
 
 WorkBuddy runs an automatic security scan before installing any skill, looking
 for malicious scripts and risky behaviour. Consequences for authoring: no
-secrets in any file, no network calls from scripts, no credential handling, and
-prefer stdlib-only Python so there is no dependency install step to flag.
+secrets in any file, no credential handling, and prefer stdlib-only Python so
+there is no dependency install step to flag.
+
+**Outbound HTTP from a script is the remaining exposure**, and as of 6 August
+2026 the project accepts it — see `docs/DECISIONS.md`. Whether the scanner
+actually rejects it is **[UNKNOWN]** and untestable since access lapsed. If an
+install is refused at submission, this is the first thing to strip out.
 
 ## Known documentation defects
 

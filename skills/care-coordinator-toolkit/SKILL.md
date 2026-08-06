@@ -1,6 +1,6 @@
 ---
 name: care-coordinator-toolkit
-description: "Runs deterministic Python scripts to calculate and produce exact numbers, dates, distances, and drafts for care tasks, ensuring all data is computed programmatically rather than in prose. examples: calculating medication supply days, reviewing insurer claims, splitting care costs, finding clinic distances, determining medication purchase terms, generating a pharmacy cart draft"
+description: "Runs deterministic Python scripts to calculate and produce exact numbers, dates, distances, and drafts for care tasks, ensuring all data is computed programmatically rather than in prose. trigger: when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly. examples: calculating medication supply days, reviewing insurer claims, splitting care costs, finding clinic distances, determining medication purchase terms, generating a pharmacy cart draft"
 ---
 
 # Care coordinator toolkit
@@ -155,7 +155,7 @@ never floats.
 **Requires:** `snapshot_path`, an `origin` giving `longitude` **then** `latitude`
 — GeoJSON order — and at least one of `limit` and `radius_metres`.
 
-**Source of truth:** a dated snapshot under `references/`, written offline by a
+**Source of truth:** a dated snapshot under `references/`, written by a
 person running `tools/fetch_references.py`. An edited one is refused; over 30
 days old still answers, marked `stale`.
 
@@ -228,6 +228,7 @@ only.
   result. Medication work here is arithmetic about supply and nothing else.
 - **Does not assert eligibility.** Nothing here decides who qualifies for
   anything.
-- **Does not reach the network.** External criteria live in dated snapshots
-  refreshed offline by a person. Not in a snapshot, not available.
+- **Does not report a fact it cannot source.** A script may fetch; whatever it
+  fetches is reported with its URL and retrieval time, and an unreachable source
+  falls back to the dated snapshot marked stale, never to a guess.
 - **Does not read or write outside the paths passed on the command line.**

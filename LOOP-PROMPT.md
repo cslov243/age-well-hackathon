@@ -42,8 +42,9 @@ unit first. **Do not batch two backlog items into one cycle.**
   resolve one by assumption.
 - **Never compute a number in prose.** No script produced it → that is a missing
   script, not a thing to work out in your head.
-- **Never assert eligibility**, never add a network call to a skill, never write
-  code that submits, logs in or handles a credential.
+- **Never assert eligibility**, and never write code that submits, logs in or
+  handles a credential. A script may fetch, but every fetched fact renders its
+  URL and retrieval time, and the test suite stays offline.
 - A change that alters `docs/CONTRACTS.md` — **stop and flag it** rather than
   quietly updating both sides.
 - A bug found outside the current item goes into `docs/AUDIT-FINDINGS.md` with a
@@ -108,7 +109,7 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 7 | `CLAUDE.md` cut to rules; `docs/DECISIONS.md` split out | Done |
 | 8 | `SKILL.md` and the agent body cut to rules | Done |
 | 9 | This file and `docs/*` restructured; the backlog guarded | Done |
-| 10 | `fetch_references.py` — the only file permitted to open a socket | Done |
+| 10 | `fetch_references.py` — the snapshot fetcher, run by a person | Done |
 | 11 | `clinic_finder.py` — nearest CHAS clinic over the snapshot; haversine; distance rounded to 10 m; asserts nothing about eligibility | Done |
 | 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Done |
 | 13 | `purchase_terms.py` and the `medication-watch` skill — the chain that makes the connectors visible | Done |

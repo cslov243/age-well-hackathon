@@ -62,9 +62,34 @@ doesn't exist yet.*
 
 ---
 
-## External data — snapshot at build time, never call at runtime
+## External data — reversed 6 August 2026: fetching is allowed
 
-**Decided:** dated snapshots, fetched offline by `tools/fetch_references.py`,
+**Now decided:** a script may reach the network. Every fetched fact renders its
+source URL and retrieval time; an unreachable source degrades to the dated
+snapshot marked stale, never to a guess; and the test suite stays offline.
+
+**Why the reversal:** the no-network rule was bounding the product, not just the
+implementation. Live scheme criteria, real geocoding and step-free routing are
+the difference between a filing assistant and something that answers "where do I
+take her and can she get in". Three of the four reasons below survive as
+*preferences* — snapshot what is slow-moving, keep the demo independent of the
+venue's wifi — but they were being enforced as a prohibition, and the cost of
+that showed up as scope.
+
+**What did not change, and must not be confused with this:** no Singpass, no
+portal login, no credential, no submission. Reaching a public source is not
+acting as her. That rule is untouched.
+
+**Risk knowingly accepted:** WorkBuddy security-scans plugins on install, and
+whether outbound HTTP from a script trips it is **[UNKNOWN]** and untestable
+since access lapsed on 3 August. If an install is refused at submission, the
+network calls are the first thing to strip — which is why snapshots stay the
+default for anything the demo depends on.
+
+---
+
+**Superseded — the original decision, kept because the reasoning is still the
+right default:** dated snapshots, fetched offline by `tools/fetch_references.py`,
 which a human runs and no skill invokes.
 
 Three reasons, in order:

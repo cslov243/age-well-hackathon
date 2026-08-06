@@ -1,14 +1,28 @@
 # External data sources
 
-## Policy: snapshot at build time, never call at runtime
+## Policy: fetching is allowed; provenance is not optional
 
-**No script in this project makes a network call.** Datasets are fetched offline
-by `tools/fetch_references.py` — run by a human, never invoked by a skill —
-written with their fetch date, and read from disk by scripts that contain no
-networking code at all.
+**Reversed 6 August 2026.** A script may reach the network. What it may not do is
+report a fact without saying where the fact came from — anything fetched renders
+its URL and the time it was retrieved, exactly as a dated snapshot renders its
+date.
+
+Snapshots have not gone away, and remain the default for anything the demo
+depends on. `tools/fetch_references.py` still writes them: run by a person, fetch
+date recorded, presigned credentials stripped from the URL before anything is
+written. Prefer a snapshot where the data is slow-moving — scheme criteria,
+clinic lists. Fetch live where staleness is the bigger risk.
+
+**A live call needs a fallback.** Unreachable source, timeout or rate limit means
+fall back to the dated snapshot and say it is stale. It never means guess, and it
+never means fail the whole run in front of a caregiver.
+
+**The test suite stays offline.** No test opens a socket. A suite that runs
+identically on any machine with Python 3 is worth more than fidelity to a live
+endpoint; exercise networking code against fixtures.
 
 The reasoning, and the Demo Day answer that goes with it, is in
-`docs/DECISIONS.md`. Do not re-argue it here.
+`docs/DECISIONS.md`.
 
 ## Verification status
 

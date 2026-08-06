@@ -1,6 +1,6 @@
 ---
 name: medication-watch
-description: "Used on daily run. Runs a sequence of three scripts (purchase terms, medication runout, and pharmacy cart) to check remaining medication supplies, determine purchase terms, and draft a pharmacy cart without performing any prose arithmetic or ordering items. examples: checking remaining medication supply, finding when a refill is due, generating a pharmacy cart draft"
+description: "Runs a sequence of three scripts (purchase terms, medication runout, and pharmacy cart) to check remaining medication supplies, determine purchase terms, and draft a pharmacy cart without performing any prose arithmetic or ordering items. trigger: the daily scheduled run, and equally whenever a caregiver or the senior asks how much medicine is left, when a refill is due, or what needs buying. examples: checking remaining medication supply, finding when a refill is due, generating a pharmacy cart draft"
 ---
 
 # Medication watch
@@ -85,6 +85,5 @@ ambiguous about whether today counts; the summary states the convention.
   rate; they appear as excluded, with a quantity and no dates.
 - **Does not submit, log in, or handle a credential** — no portal, no Singpass,
   no password, no OTP, not even one a user volunteers.
-- **Does not reach the network.**
 - **Does not compute a number in prose.** If a figure is needed and no script
   produced it, say so and stop.

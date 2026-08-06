@@ -537,13 +537,7 @@ class ChainTests(unittest.TestCase):
         self.assertIn("calcium-d", cart["cart"]["total_suppressed_because"])
 
 
-class NoNetworkTests(unittest.TestCase):
-
-    def test_the_source_opens_no_socket(self):
-        source = (SCRIPTS / "purchase_terms.py").read_text(encoding="utf-8")
-        for term in ("socket", "urllib", "requests", "http.client", "urlopen"):
-            with self.subTest(term=term):
-                self.assertNotIn(term, source)
+class MoneyTests(unittest.TestCase):
 
     def test_money_is_decimal_never_float(self):
         row = build(med(buy=priced()))["purchase"]["calcium-d"]

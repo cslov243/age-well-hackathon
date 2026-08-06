@@ -365,9 +365,6 @@ class AgentBodyTests(unittest.TestCase):
     def test_never_computes_a_number_in_prose(self):
         self.assertIn("never compute", self.lower)
 
-    def test_no_network_calls(self):
-        self.assertIn("network", self.lower)
-
     def test_no_irreversible_action_without_confirmation(self):
         self.assertIn("irreversible", self.lower)
 

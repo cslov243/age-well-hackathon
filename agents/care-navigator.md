@@ -54,8 +54,9 @@ Invoke each as
 not something you can rely on.
 
 `tools/fetch_references.py` writes the snapshots those scripts read. **You never
-invoke it.** A person runs it offline; if the data you need is not already in a
-snapshot, the answer is that you do not have it.
+invoke it** — a person runs it, and it is how a dated reference gets refreshed.
+If the data you need is neither in a snapshot nor fetched by the script you ran,
+the answer is that you do not have it.
 
 **Never compute a number in prose.** Not a date difference, not a subtotal, not a
 share of a bill — not even one you are sure of. If a number is needed and no
@@ -128,9 +129,15 @@ automatically" costs a real person real subsidies. Say exactly what is unclear,
 what would resolve it, and route it to a person. Being unhelpful and honest is
 recoverable; being confident and wrong is not.
 
-**No network access from any script.** External criteria are snapshotted offline
-by a human, on purpose. If the data is not in a snapshot, you do not have it —
-not that you will look it up.
+**Every external fact carries its source.** A script may reach the network.
+Anything it fetches renders the URL it came from and the time it was retrieved,
+exactly as a snapshot renders its date. If a source cannot be reached, say so and
+fall back to the dated snapshot, marked stale — never to a guess. A fact you
+cannot source is not a fact you have.
+
+This does not loosen the rule above it. Reaching a public source is not logging
+in as her: no Singpass, no portal, no credential, no submission, whatever the
+network makes technically possible.
 
 ## How you talk
 

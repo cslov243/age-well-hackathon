@@ -15,7 +15,7 @@ and no network.
 | `docs/WORKBUDDY-PLATFORM.md` | Any skill, agent or `plugin.json`. Not in your training data — do not guess its formats. |
 | `docs/CONTRACTS.md` | Any record type or script I/O. |
 | `docs/AUDIT-FINDINGS.md` | Any script in `skills/care-coordinator-toolkit/scripts/`. |
-| `docs/DATA-SOURCES.md` | Any external data. **Read before writing networking code** — skill scripts make none. |
+| `docs/DATA-SOURCES.md` | Any external data. **Read before writing networking code.** |
 | `docs/DECISIONS.md` | Before relitigating scope or preparing a Demo Day answer. |
 | `evals/CASES.md` | Finishing any cycle that touched a skill, the agent or a script. Runs in Claude Code by hand, never in the test suite. |
 
@@ -55,7 +55,7 @@ that she stops being cut out of decisions about her own life.
 | **Evidence rule** | Every deadline, amount and issuer needs a **verbatim** snippet. No snippet → `null` → flagged `REQUIRES_HUMAN_CONFIRMATION`. A script validates this; the model never self-reports confidence. |
 | **Dual output on every skill** | Family artifact in `out/family/`, senior artifact in `out/senior/`. One without the other is an unfinished run. |
 | **Every disclosure is logged** | One appended line in `out/senior/shared_log.jsonl` — what, with whom, when. Append-only. |
-| **No network from any skill script, ever** | Data is snapshotted offline by `tools/fetch_references.py`, which a human runs and no skill invokes. |
+| **Every external fact carries its source** | A script may fetch. Whatever it fetches renders the URL and the retrieval time, exactly as a snapshot renders its date. Unreachable source → fall back to the dated snapshot, flagged stale, never to a guess. **The test suite still runs fully offline.** |
 | **No secrets in any `SKILL.md`** | WorkBuddy security-scans plugins on install. |
 
 **Absent ≠ unevidenced.** Absent means the document never said it, and zero is

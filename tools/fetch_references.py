@@ -5,11 +5,13 @@ Usage:
     python3 fetch_references.py --out-dir <dir> [--as-of YYYY-MM-DD]
     python3 fetch_references.py --from-file <file.geojson> --out-dir <dir>
 
-This is the **only file in the repo permitted to open a socket**, and no skill
-invokes it. See docs/DECISIONS.md for why external data is snapshotted at build
-time and never queried at runtime; the short version is that WorkBuddy
-security-scans plugins on install, a demo cannot depend on the venue's wifi, and
-`criteria as of 2026-08-03 — verify at <URL>` is only honest about a dated file.
+This is the snapshot fetcher — run by a person, never by a skill. Scripts may
+reach the network as of 6 August 2026; this file remains how a *dated* reference
+gets written, with credentials stripped and the fetch date recorded. No skill
+invokes it. See docs/DECISIONS.md for why snapshots remain the default for
+anything the demo depends on: WorkBuddy security-scans plugins on install, a demo
+cannot depend on the venue's wifi, and `criteria as of 2026-08-03 — verify at
+<URL>` is a claim you can reproduce months later in a way a live query is not.
 
 It ships nowhere. It lives in tools/, outside the plugin tree, and the snapshot
 it writes is what the skills read.

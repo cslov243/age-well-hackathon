@@ -430,7 +430,7 @@ medicine implies it will be buyable later, and it never will.
 
 ### It prepares. It does not buy.
 
-No network call, no API, no payment, no stored card, no standing authority. A
+No purchase API, no payment, no stored card, no standing authority. A
 `deep_link` is a string the caller supplies and a person clicks; it is validated
 (`https://` only, no userinfo, nothing credential-shaped) and copied, never
 opened. `docs/DECISIONS.md` records why the purchase itself is never built.
