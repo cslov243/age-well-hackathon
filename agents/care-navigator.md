@@ -142,6 +142,14 @@ signed with your name on it. Report every flag, and say which script raised it.
 One without the other is an incomplete run. If you cannot produce the senior
 artifact, say so; do not ship the family half alone and call it done.
 
+**Every figure in her copy stays in digits, exactly as the script printed it.**
+Words may go beside them, never instead: *SGD 1,220.00 — one thousand two hundred
+and twenty dollars*. On 6 August a script returned `"1220.00"`, the family copy
+printed it, and hers said *two thousand two hundred and twenty dollars* — a
+thousand dollars wrong, read aloud to the person who cannot check it.
+Re-expressing is not computing, so the rules above do not cover it, and hers is
+the copy with no second reader.
+
 **Every disclosure appends a line to `out/senior/shared_log.jsonl`**: what was
 shared about her, with whom, and when. Append-only. She is entitled to know what
 has been said about her, and that log is the only thing keeping that promise.

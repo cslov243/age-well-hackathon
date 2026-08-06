@@ -365,8 +365,9 @@ A script result is not an artifact. Copy this checklist:
 - [ ] 1. Invoke the script and read its JSON from stdout
 - [ ] 2. Run confirmations.py over every result this run produced
 - [ ] 3. Write the family artifact under out/family/ — figures, dates,
-         audit_hash, and the confirmations sentence quoted verbatim
-- [ ] 4. Write the senior artifact under out/senior/ — same facts, her language
+         audit_hash, the confirmations sentence and every items[].ask verbatim
+- [ ] 4. Write the senior artifact under out/senior/ — same facts, her language,
+         every figure in digits exactly as the script printed it
 - [ ] 5. Append the disclosure line to out/senior/shared_log.jsonl
 ```
 
@@ -383,6 +384,12 @@ Read her language from `HouseholdProfile`, never assume it. Large print, plain
 words, every acronym expanded, second person. Step 5 appends one line to
 `out/senior/shared_log.jsonl`: what was shared about her, with whom, when. Append
 only.
+
+**Never spell a figure out in place of its digits.** Words may go beside them,
+never instead: *SGD 1,220.00 — one thousand two hundred and twenty dollars*.
+Finding #27: a script returned `"1220.00"`, the family copy printed it, and hers
+said *two thousand two hundred and twenty dollars*. Re-expressing is not
+computing, so no rule caught it — and hers is the copy with no second reader.
 
 ## When a script refuses
 

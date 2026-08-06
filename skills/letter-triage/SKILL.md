@@ -40,27 +40,27 @@ match. Every key of `fields` is required — `issuer`, `issue_date`, `deadline`,
 ## Quote it or leave it null
 
 Every issuer, date and amount needs a **verbatim** snippet under its own field
-path — `deadline`, `amounts[0]` — exactly as the page prints it.
+path — `deadline`, `amounts[0]` — as the page prints it.
 
 - **Absent** — the letter never mentioned it: `null`, no snippet. An honest
   answer, and no flag.
 - **Present but unquotable** — you believe you saw it: *unknown*. The script
   nulls it, lists it in `missing_evidence`, flags `REQUIRES_HUMAN_CONFIRMATION`.
 
-- **Never supply a value you cannot quote.** The script checks the value appears
-  in its snippet; a plausible figure against nearby text is refused.
+- **Never supply a value you cannot quote.** The script checks it appears in its
+  snippet; a plausible figure against nearby text is refused.
 - **Never report a confidence, and never soften one** — no percentage, no
-  "fairly sure", no "appears to say". The quotation is the whole signal.
-- **A value the script refused is not a value.** The refusal belongs to the
-  number, not the record. It is carried into no claim, no artifact and no
-  answer, and never by hand into another script.
+  "fairly sure", no hedging. The quotation is the whole signal.
+- **A value the script refused is not a value.** It is carried into no claim, no
+  artifact and no answer, and never by hand into another script.
 - **A flagged record is a correct outcome, not a failed run.** Whether a person
-  is needed is confirmations.py's answer, not yours: quote its sentence, and
-  never write that no confirmation is needed unless it said so.
+  is needed is confirmations.py's answer, not yours: quote its sentence **and
+  every items[].ask** verbatim, and never write that no confirmation is needed
+  unless it said so.
 
 **Grouping pages is your call; the bias is to split.** Same issuer and date is
 not one letter. Split on any conflicting date, amount or type: a duplicate costs
-a notification, a merge a deadline.
+a notification, a merge costs a deadline.
 
 ## Every run produces both artifacts
 
@@ -77,39 +77,40 @@ a notification, a merge a deadline.
 ```
 
 Read her language from `HouseholdProfile`; **never assume** it. Address her
-directly, in the second person — "this letter asks you to send three receipts",
-never "she needs to". Expand every acronym.
+directly, in the second person — "this letter asks you", never "she needs to".
+Expand every acronym.
 
 - **Never substitute a near-enough language.** Mandarin because the profile says
   `hokkien` is fluent, confident, and not hers.
 - **`hokkien`, `teochew` and `cantonese` are spoken, not written** — do not stop
   the run. Write hers as a read-aloud script in a language the household reads,
-  and **label it with the language it is written in**, not the one she speaks: "read-aloud script, in English". Say the gap
-  once.
+  and **label it with the language it is written in**, not the one she speaks.
+  Say the gap once.
 - **Never say why a letter was sent to her.** A clinic's name is not a
   condition; those come from `chronic_conditions` alone.
 - **Where a figure came from has two answers**: printed on the page, or
   worked out from what the page prints. Never tell her the letter says a
   number a script computed — the balance she owes is printed nowhere she can
   check.
+- **Figures stay in digits** — words beside them, never instead: *SGD 1,220.00 —
+  one thousand two hundred and twenty dollars*. Spelling one out made hers a
+  thousand dollars wrong, in the copy nobody re-reads.
 
 Quote the script's `summary` rather than retelling it.
 
 ## What this skill does not do
 
-- **Does not compute a number in prose** — not a day count, not a total, not
-  how long is left, however trivial it looks. **A second date beside a correct
-  one is the same fault** — a buffer, a lead time, a day to start gathering by.
-  Say she should begin early; do not name a day.
+- **Does not compute a number in prose** — not a day count, not a total,
+  however trivial it looks. **A second date beside a correct one is the same
+  fault**: a buffer, a lead time. Say she should begin early, not which day.
 - **Does not re-read a document it has already filed**, and does not open one
-  again before the check answers. It moves no page out of `inbox/` until its
-  record is written.
+  before the check answers. No page leaves `inbox/` until its record is written.
 - **Does not give clinical advice** — no dose, no diagnosis, no reading of a
-  test result. Route to a pharmacist or doctor. Nothing touching a Lasting Power
-  of Attorney.
+  test result. Route to a pharmacist or doctor. Nothing touching a Lasting
+  Power of Attorney.
 - **Does not assert eligibility** — only `likely eligible`, `worth checking` or
   `insufficient information`, each with `criteria as of YYYY-MM-DD`.
 - **Does not reply, submit, log in, or handle a credential** — no portal, no
-  Singpass, no OTP, not even one a user volunteers. A person sends it.
+  Singpass, no OTP, not even one volunteered. A person sends it.
 - **Does not skip her copy.** Stopping after `out/family/` is an unfinished
   run; the letter is about her life.
