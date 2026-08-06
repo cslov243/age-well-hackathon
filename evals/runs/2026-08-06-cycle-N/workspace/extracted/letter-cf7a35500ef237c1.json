@@ -1,0 +1,94 @@
+{
+  "tool_run_id": "a6db2b20-75be-4179-b9af-e3f13312e12a",
+  "issued_at": "2026-08-06T19:39:12+08:00",
+  "as_of": "2026-08-06",
+  "mode": "record",
+  "content_hash": "sha256:cf7a35500ef237c1da5d6f1c6eac54467c0567a06c84f2b7d760de113eef43de",
+  "id": "letter-cf7a35500ef237c1",
+  "pages": [
+    {
+      "path": "/home/pkx/.claude/jobs/2177a068/tmp/eval-run/care/inbox/ge-claim-2026-07-28.txt",
+      "sha256": "3e46dc9b5d14d1f10c26543d7fd3efeb202dd8d1afd6383b5294a6943bf0a87b",
+      "bytes": 852
+    }
+  ],
+  "records_dir": "/home/pkx/.claude/jobs/2177a068/tmp/eval-run/care/extracted",
+  "records_scanned": 0,
+  "records_unreadable": [],
+  "already_extracted": false,
+  "existing_record_path": null,
+  "should_extract": true,
+  "record": {
+    "id": "letter-cf7a35500ef237c1",
+    "content_hash": "sha256:cf7a35500ef237c1da5d6f1c6eac54467c0567a06c84f2b7d760de113eef43de",
+    "source_files": [
+      "/home/pkx/.claude/jobs/2177a068/tmp/eval-run/care/inbox/ge-claim-2026-07-28.txt"
+    ],
+    "doc_type": "insurance",
+    "issuer": "GREAT EASTERN LIFE ASSURANCE LIMITED",
+    "issue_date": "2026-07-28",
+    "deadline": null,
+    "amounts": [
+      "1220.00",
+      "860.00"
+    ],
+    "required_action": "Submit appeal with original itemised bill and referral letter from attending doctor within 30 days if contesting the partial settlement",
+    "evidence": {
+      "issuer": "GREAT EASTERN LIFE ASSURANCE LIMITED",
+      "issue_date": "Date of this letter: 28 July 2026",
+      "deadline": "If you wish to appeal this decision, your appeal and all supporting documents must reach us within 30 days of the date of this letter.",
+      "amounts[0]": "Total amount billed          SGD 1,220.00",
+      "amounts[1]": "Amount payable by us         SGD   860.00"
+    },
+    "extracted_at": "2026-08-06T19:39:12+08:00",
+    "flags": [
+      "REQUIRES_HUMAN_CONFIRMATION"
+    ]
+  },
+  "record_path": "/home/pkx/.claude/jobs/2177a068/tmp/eval-run/care/extracted/letter-cf7a35500ef237c1.json",
+  "missing_evidence": [
+    "deadline"
+  ],
+  "evidence_problems": [
+    {
+      "field": "deadline",
+      "reason": "value_not_in_snippet",
+      "detail": "deadline does not appear in the text quoted for it: 'If you wish to appeal this decision, your appeal and all supporting documents must reach us within 30 days of the date of this letter.'. The value and its evidence disagree, and the evidence is the one that was on the page"
+    }
+  ],
+  "conventions": {
+    "evidence": "issuer, issue_date, deadline and every amount survive only with a snippet that exists, is not blank, and contains the value it is evidence for. Anything else is nulled and listed in missing_evidence, and the record is flagged REQUIRES_HUMAN_CONFIRMATION. A field the letter never mentioned is null with no snippet and no flag: absent is an answer, unquotable is not",
+    "verbatim_limit": "verbatim cannot be verified here. There is no document text to diff a snippet against, only an image the model already looked at, so this checks that the extracted value appears in the text quoted for it. That catches a number quoted against text saying a different number. It does not catch a snippet invented whole, and no check available here would",
+    "identity": "content_hash covers every page's bytes in the order given, so the same scan under a new filename is the same letter and a re-ordered pair of pages is not. The id is derived from that hash and from nothing else",
+    "idempotency": "a content_hash already present in the records directory is a no-op: nothing is written and the existing record stands. Re-extracting costs another vision call and produces a second record that competes with the first rather than correcting it",
+    "splitting": "which pages form one letter is the model's call, and the bias is toward splitting. A duplicate record costs an annoying second notification; a false merge silently eats a deadline",
+    "handoff": "nothing here is answered, submitted, paid or filed with anyone. This writes one JSON file into the directory it was given, and the letter itself is still a person's to act on",
+    "modes": [
+      "check",
+      "record"
+    ],
+    "doc_types": [
+      "chas",
+      "appointment",
+      "hdb",
+      "medication",
+      "bill",
+      "insurance",
+      "other"
+    ],
+    "gated_fields": [
+      "issuer",
+      "issue_date",
+      "deadline",
+      "amounts[i]"
+    ],
+    "problem_reasons": [
+      "no_snippet",
+      "blank_snippet",
+      "value_not_in_snippet",
+      "nothing_evidenced"
+    ]
+  },
+  "summary": "Filed 1 page as letter-cf7a35500ef237c1, an insurance letter. Quotable and kept: issuer, issue_date, amounts. 1 field could not be quoted and was left null rather than guessed at: deadline. Someone has to open the letter and confirm it. Nothing has been answered, submitted or filed with anyone.",
+  "audit_hash": "sha256:c1e8fff61576164cb681bc08e20f979dd423a7e515dcfda8a2f291a5f8c5cf13"
+}

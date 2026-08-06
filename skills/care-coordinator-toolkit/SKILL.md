@@ -5,7 +5,8 @@ description: "Runs deterministic Python scripts to calculate and produce exact n
 
 # Care coordinator toolkit
 
-Eight scripts. Between them they own **every number this expert reports.**
+Nine scripts. Between them they own **every number this expert reports**, and
+whether a run needs a person.
 
 ## The rule
 
@@ -28,6 +29,7 @@ python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
 python3 scripts/purchase_terms.py --input <input.json> [--output <output.json>]
 python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 python3 scripts/deadline_calendar.py --input <input.json> --ics <calendar.ics> [--output <output.json>]
+python3 scripts/confirmations.py --input <input.json> [--output <output.json>]
 ```
 
 Keep `scripts/` as written. **Angle brackets are placeholders for absolute
@@ -61,6 +63,13 @@ disputed number checkable months later.
 whether this document has been extracted before — that call comes **first**, and
 a `should_extract` of false means stop, not read it again. `record` files the
 extraction you then made.
+
+**`record` refuses without `check_audit_hash`** — the `audit_hash` the `check`
+run printed. It recomputes the check over the same bytes and the same records
+directory and refuses a mismatch, so the value cannot be produced without having
+made the call. This is a precondition rather than an instruction because the
+instruction was skipped: audit finding #25. If it refuses, run `check` again on
+exactly those `source_files` and read `should_extract` before anything else.
 
 **Requires in `record` mode:** `doc_type`, `evidence`, and every key of `fields`
 — `issuer`, `issue_date`, `deadline`, `amounts`, `required_action` — present
@@ -280,7 +289,7 @@ read by everyone it is shared with.
 | | |
 |---|---|
 | `minimal` | "Medication refill due" — no medicine, condition, insurer or amount. Two reminders on nearby days look identical **on purpose**; the family artifact says which is which |
-| `named` | names the medicine or the insurer, **and is a disclosure** — `disclosure.required` comes back true and step 4 of the checklist below applies to it |
+| `named` | names the medicine or the insurer, **and is a disclosure** — `disclosure.required` comes back true and step 5 of the checklist below applies to it |
 
 Ask which. Never pick `named` because it reads better.
 
@@ -289,23 +298,56 @@ with a reason: `no_date`, `beyond_horizon`, or `already_passed`. Report the
 `already_passed` ones to the caregiver in prose — a back-dated entry notifies
 nobody, and that deadline needs a person today.
 
+## `confirmations.py` — does this run need a person?
+
+**Use when** a run is finished and before either artifact is written. Every
+other script here answers *is this record clean*. This one answers *does this
+run need a person*, which is a different question, and it is the question the
+artifacts state an answer to.
+
+**Requires:** `records` and `claims` — lists of whole results passed
+**verbatim**, each `audit_hash` recomputed and a mismatch refused. Both keys are
+required and `[]` is legal; an absent key means a whole set of flags was never
+read.
+
+**Quote `sentence` verbatim into both artifacts.** Do not compose your own.
+Whether a person is needed is not a judgement you make from the flag lists you
+happened to read — it is this script's output, exactly as an amount is
+`expense_split.py`'s.
+
+**A clean list from one script is not a clean run.** Audit finding #22: a
+family artifact certified "No human confirmation required" over a record
+flagged `REQUIRES_HUMAN_CONFIRMATION`, because the claim review in the same run
+had returned `flags: []` legitimately. Pass every result the run produced. What
+you do not pass is not checked, and `sentence` says how many were.
+
+Any flag it does not recognise still comes back needing a person. That is
+deliberate, and it is the only safe direction.
+
 ## Finishing a run
 
 A script result is not an artifact. Copy this checklist:
 
 ```
 - [ ] 1. Invoke the script and read its JSON from stdout
-- [ ] 2. Write the family artifact under out/family/ — figures, dates, audit_hash
-- [ ] 3. Write the senior artifact under out/senior/ — same facts, her language
-- [ ] 4. Append the disclosure line to out/senior/shared_log.jsonl
+- [ ] 2. Run confirmations.py over every result this run produced
+- [ ] 3. Write the family artifact under out/family/ — figures, dates,
+         audit_hash, and the confirmations sentence quoted verbatim
+- [ ] 4. Write the senior artifact under out/senior/ — same facts, her language
+- [ ] 5. Append the disclosure line to out/senior/shared_log.jsonl
 ```
 
-**Step 3 is the one that gets skipped.** Stopping after `out/family/` ships half
+**Never write that no confirmation is needed unless `confirmations.py` said
+so.** The absence of a flag is not a finding. An artifact that says nothing
+about confirmation is correct; one that certifies its absence without having
+checked is the defect.
+
+**Step 4 is the one that gets skipped.** Stopping after `out/family/` ships half
 a run — the exact failure this product exists to prevent. If you cannot write the
 senior artifact, say so; do not call the run complete.
 
 Read her language from `HouseholdProfile`, never assume it. Large print, plain
-words, every acronym expanded, second person. Step 4 appends one line to
+words, every acronym expanded, second person. Step 5 appends one line to
 `out/senior/shared_log.jsonl`: what was shared about her, with whom, when. Append
 only.
 

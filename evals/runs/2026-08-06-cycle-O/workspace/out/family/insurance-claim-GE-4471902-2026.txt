@@ -1,0 +1,56 @@
+INSURANCE CLAIM SUMMARY
+Great Eastern Life Assurance Limited
+
+Policy: GE-4471902
+Claim Reference: CLM-2026-0088
+Claim Date: 28 July 2026
+Letter Date: 28 July 2026
+
+STATUS: Partially Paid - Appeal Possible
+
+AMOUNTS
+Billed:              SGD 1,220.00
+Paid by Insurer:     SGD   860.00
+Outstanding:         SGD   360.00 (payable by policyholder)
+
+DECISION
+The insurer has decided to pay SGD 860.00 and the balance of SGD 360.00 is the policyholder's responsibility. The letter does not explain the reason for partial payment.
+
+APPEAL INFORMATION
+You may appeal this decision within 30 days of the letter date.
+Appeal Deadline: 27 August 2026 (21 days remaining as of 6 August 2026)
+
+Documents Required for Appeal:
+- Original itemised bill
+- Referral letter from the attending doctor
+
+NEXT STEPS
+1. HUMAN REVIEW REQUIRED: The letter does not explicitly state the specific appeal deadline date. Someone should verify the deadline calculation (30 days from 28 July = 27 August).
+
+2. Gather the required documents:
+   - Get the original itemised bill from the clinic/hospital
+   - Obtain the referral letter from the attending doctor
+
+3. Decide whether to appeal:
+   - Review the reasons for partial payment
+   - Consider whether an appeal is worth pursuing
+   - Consult with the family if needed
+
+4. If appealing:
+   - Prepare a written appeal letter
+   - Include copies of all required documents
+   - Send to the insurer at:
+     GREAT EASTERN LIFE ASSURANCE LIMITED
+     1 Pickering Street
+     Singapore 048659
+   - Keep proof of delivery
+
+CONFIRMATION STATUS
+As per the script analysis: "1 thing in the 2 script outputs checked needs a person before anything is sent: deadline on letter-cf7a35500ef237c1."
+- Tool run ID (letter): d39fa8d5-9b3d-4024-9854-7d97bbeaf624
+- Tool run ID (claim review): 769af2d5-edb4-43ca-89e9-553bde7bcf6c
+
+AUDIT HASHES
+Letter audit hash: sha256:57f3f153a3e35db9a271d16d8876c46e79b586ce28eefbf1144d91822de8c4b7
+Claim review audit hash: sha256:69d0ca14c9ed930b557230bd33ab408eb36032c35dd0a5cc3e288d67bc462504
+Confirmation audit hash: sha256:7dce12d6670df3fc5b0a3dfa4a5fd1e43d5ebf5a25d082d13c45066a50a46352

@@ -39,7 +39,7 @@ FENCED = re.compile(r"```.*?```", re.DOTALL)
 
 # Invocation order: identity first, the extraction it guards second, and the
 # claim review only once there is a record with a doc_type to route on.
-CHAIN = ("letter_record.py", "insurance_claim_review.py")
+CHAIN = ("letter_record.py", "insurance_claim_review.py", "confirmations.py")
 
 # Ratchet, not a target. Lower it when the file shrinks; do not raise it.
 # Set at the measured value on 6 Aug 2026. It sits above deadline-watch because
@@ -51,7 +51,19 @@ CHAIN = ("letter_record.py", "insurance_claim_review.py")
 # budget forced the question of what the older prose was earning. The SGD
 # 4,320.00 anecdote went: cycle K made that rule a check in code, so the file
 # no longer has to argue for it.
-WORD_BUDGET = 991
+#
+# Raised 991 -> 1029, cycle P, and this is the first raise. It was resisted
+# through two cycles: the #20 rule and the provenance rule were both paid for
+# by cutting duplication, and the seam is now exhausted — what is left is
+# load-bearing. This cycle the file gained a fourth script in the chain, an
+# enforced precondition to describe, and a checklist step that had to be split
+# in two because folding the check together with the reading is what let a cold
+# agent skip it (finding #25). Cutting a rule to protect a number would have
+# been the wrong trade: the budget exists to stop prose accumulating without
+# earning its place, not to cap what the skill is responsible for. Do not read
+# this as permission to raise it again — the next growth should be paid for by
+# moving a rule into a script, the way findings #16 and #22 were.
+WORD_BUDGET = 1029
 
 
 def body():
@@ -290,13 +302,42 @@ class BothArtifactsTests(unittest.TestCase):
                 "the read-aloud fallback is not required to name the language "
                 "it is actually written in")
 
-    def test_the_checklist_carries_the_flag_into_her_copy(self):
-        # The flag reached neither artifact in two consecutive runs. A step
-        # that only says "write the artifact" is a step that wrote both of
-        # them, correctly, with the refusal missing from each.
+    def test_the_check_call_is_its_own_step(self):
+        # Audit finding #25. Step 1 read "Check, read the pages, then file into
+        # extracted/" — one line, three actions, and the first of them is the
+        # one that got skipped. A step that contains the whole run is a step
+        # that can be entered anywhere in the middle of it.
+        first = self.items[0].lower()
+        self.assertIn("check", first)
+        for later in ("read the pages", "file into", "extracted/"):
+            with self.subTest(term=later):
+                self.assertNotIn(later, first,
+                                 "step 1 still folds the check together with "
+                                 "the work it is supposed to gate")
+
+    def test_the_checklist_says_a_record_call_carries_the_check_hash(self):
+        # The precondition is in the script now; the checklist has to say what
+        # to carry across, or every run meets it by trial and error.
+        self.assertIn("check_audit_hash", self.body)
+
+    def test_the_checklist_runs_the_confirmation_check_before_it_writes(self):
+        # The flag reached neither artifact in two consecutive runs, and on the
+        # third the artifact asserted its negation — finding #22. Naming the
+        # flag in the checklist was not enough twice over, so the checklist now
+        # names the script that answers the question, and it has to come before
+        # the artifacts that quote it.
         lower = self.checklist.lower()
-        self.assertIn("flag", lower)
+        self.assertIn("confirmations.py", lower)
         self.assertIn("confirm", lower)
+        self.assertLess(lower.index("confirmations.py"), lower.index("out/family/"),
+                        "the artifacts are written before the confirmation "
+                        "check that they are supposed to quote")
+
+    def test_the_prose_forbids_certifying_that_nobody_need_confirm(self):
+        # The absence of a flag is not a finding. An artifact silent about
+        # confirmation is correct; one certifying its absence is finding #22.
+        lower = prose_only(self.body).lower()
+        self.assertIn("no confirmation is needed", lower)
 
     def test_a_condition_is_never_inferred_from_a_letter(self):
         # Measured failure, eval case D, 6 Aug 2026: "your blood pressure

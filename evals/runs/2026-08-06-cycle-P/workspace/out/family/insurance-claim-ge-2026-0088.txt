@@ -1,0 +1,31 @@
+GREAT EASTERN LIFE ASSURANCE CLAIM: PARTIAL SETTLEMENT
+
+Policy: GE-4471902
+Claim reference: CLM-2026-0088
+Date of letter: 28 July 2026
+
+CLAIM STATUS: Partially paid
+
+AMOUNTS
+Billed by clinic: SGD 1,220.00
+Insurer pays: SGD 860.00
+Your share (outstanding): SGD 360.00
+
+DEADLINES
+Appeal decision by: 27 August 2026 (21 days from today, 6 August 2026)
+Status: OK - within the appeal window
+
+TO APPEAL (if you disagree with the partial payment):
+You must send to Great Eastern:
+- Original itemised bill from the clinic
+- Referral letter from the attending doctor
+Both must reach them by 27 August 2026.
+
+NEXT STEPS
+1. If you want to accept this payment: pay the SGD 360.00 to the clinic
+2. If you want to appeal: gather the two documents listed above and send them to Great Eastern before 27 August
+3. Do nothing if the partial payment is acceptable - no action required
+
+Contact: Great Eastern Life Assurance Limited, 1 Pickering Street, Singapore 048659
+
+Audit hash: sha256:7d4ffdd432a7ba5653220cbdddf949acb105c24db07536ac9e66e3acbebcf760

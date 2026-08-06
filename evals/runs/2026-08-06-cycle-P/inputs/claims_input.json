@@ -1,0 +1,32 @@
+{
+  "claims": [
+    {
+      "id": "claim-ge-2026-0088",
+      "insurer": "GREAT EASTERN LIFE ASSURANCE LIMITED",
+      "policy_reference": "GE-4471902",
+      "incident_date": null,
+      "submission_window_days": null,
+      "insurer_decision": "partially_paid",
+      "decision_date": "2026-07-28",
+      "appeal_window_days": 30,
+      "amounts": {
+        "billed": "1220.00",
+        "insurer_paid": "860.00",
+        "household_paid": null
+      },
+      "documents_required": [
+        "original itemised bill",
+        "referral letter from the attending doctor"
+      ],
+      "documents_held": [],
+      "evidence": {
+        "insurer": "GREAT EASTERN LIFE ASSURANCE LIMITED",
+        "decision_date": "Date of this letter: 28 July 2026",
+        "insurer_decision": "OUTPATIENT CLAIM - PARTIAL SETTLEMENT",
+        "appeal_window_days": "your appeal and all supporting documents must reach us within 30 days of the date of this letter",
+        "amounts.billed": "Total amount billed          SGD 1,220.00",
+        "amounts.insurer_paid": "Amount payable by us         SGD   860.00"
+      }
+    }
+  ]
+}

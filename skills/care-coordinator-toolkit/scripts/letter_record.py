@@ -97,7 +97,7 @@ SG = timezone(timedelta(hours=8), name="+08:00")
 FLAG = "REQUIRES_HUMAN_CONFIRMATION"
 
 KNOWN_KEYS = ("as_of", "mode", "source_files", "doc_type", "fields",
-              "evidence")
+              "evidence", "check_audit_hash")
 
 EXTRACTION_KEYS = ("doc_type", "fields", "evidence")
 
@@ -397,6 +397,49 @@ def _summary(mode, record, gate, already, existing, unreadable, pages):
 # entry point
 # --------------------------------------------------------------------------
 
+def _require_the_check_that_came_first(document, records_dir, as_of):
+    """Refuse a `record` call that no `check` call preceded.
+
+    Audit finding #25. `check` before extraction is the idempotency
+    guarantee — hash the pages, ask whether these bytes are already filed,
+    stop if they are. It was documented in three places and pinned by two
+    tests on the skill file, and a cold agent skipped it anyway and filed a
+    record for a letter it had never asked about. A second scan of the same
+    letter then files a second record that competes with the first rather
+    than correcting it, and every deadline in the household doubles.
+
+    So this stops being an instruction. The caller must hand over the
+    `audit_hash` of the `check` run, and rather than trusting it, this
+    recomputes the check over the same bytes and the same records directory
+    and compares. A value cannot be produced without having made the call —
+    which is the only version of "do this first" that survives a model
+    having a bad day.
+    """
+    if "check_audit_hash" not in document:
+        raise InvalidInput(
+            "check_audit_hash is required in mode 'record': it is the "
+            "audit_hash of the 'check' call that must come first. Run this "
+            "script in mode 'check' with the same source_files, read "
+            "should_extract — false means stop, the letter is already filed "
+            "— and pass that run's audit_hash back here. Without it there is "
+            "no evidence the pages were ever asked about, and a second "
+            "extraction of the same letter files a competing record")
+
+    expected = audit_hash_of(build_record(
+        {"as_of": as_of.isoformat(), "mode": "check",
+         "source_files": document["source_files"]},
+        records_dir))
+    supplied = document["check_audit_hash"]
+    if supplied != expected:
+        raise InvalidInput(
+            f"check_audit_hash does not match a check of these pages "
+            f"(supplied {supplied}, recomputed {expected}). Either it came "
+            f"from a check of different bytes, a different as_of or a "
+            f"different records directory, or the letter has been filed since "
+            f"that check ran. Run check again on exactly these source_files "
+            f"and use the audit_hash it prints")
+
+
 def build_record(document, records_dir):
     if not isinstance(document, dict):
         raise InvalidInput("input must be a JSON object")
@@ -428,6 +471,11 @@ def build_record(document, records_dir):
 
     supplied = [key for key in EXTRACTION_KEYS if key in document]
     if mode == "check":
+        if "check_audit_hash" in document:
+            raise InvalidInput(
+                "mode 'check' was handed a check_audit_hash. That value is "
+                "what this call produces, and a check that validates itself "
+                "proves nothing. It belongs in the 'record' call that follows")
         if supplied:
             raise InvalidInput(
                 f"mode 'check' asks whether this document needs extracting, "
@@ -441,6 +489,7 @@ def build_record(document, records_dir):
                     f"{key} is required in mode 'record'. Filing an extraction "
                     f"without it would write a record shaped like a letter "
                     f"nobody read")
+        _require_the_check_that_came_first(document, records_dir, as_of)
 
     existing, unreadable, scanned = _scan_records(records_dir, content_hash)
     already = existing is not None

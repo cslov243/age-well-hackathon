@@ -12,14 +12,14 @@ It prepares. A person acts. That line is the product, not a caveat on it.
 
 ## What is installed
 
-An expert plus three skills, in a single plugin:
+An expert plus five skills, in a single plugin:
 
 - `.codebuddy-plugin/plugin.json` — marketplace and display metadata.
 - `agents/care-navigator.md` — the expert: who it is for, how it talks, and the
   rules it does not break.
 - `skills/care-coordinator-toolkit/SKILL.md` — when and how to invoke each
   script, and what the toolkit refuses to do.
-- `skills/care-coordinator-toolkit/scripts/` — eight deterministic scripts.
+- `skills/care-coordinator-toolkit/scripts/` — nine deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
   refreshed by a person and read from disk.
 - `skills/letter-triage/SKILL.md` — the entry point: a document arriving is
@@ -66,7 +66,7 @@ reproduced months later. And the scheduled work costs almost nothing in tokens,
 because it is arithmetic over structured records rather than a model re-reading
 documents.
 
-## The eight scripts
+## The nine scripts
 
 | Script | What it computes |
 |---|---|
@@ -78,6 +78,7 @@ documents.
 | `purchase_terms.py` | How each medicine is obtained, copied from the household file so no model ever infers it. |
 | `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
 | `deadline_calendar.py` | Dates already computed by the two scripts above, turned into calendar events and an `.ics` a person imports. It copies dates and computes none. |
+| `confirmations.py` | Whether a run needs a person, merged across every result it produced. Every other script answers whether *its* record is clean; a run that chains two of them has two answers, and this is the one the artifacts state. |
 
 Beside them sits `_evidence.py`, which is not a script and has no command line:
 it holds the check that a snippet actually contains the value it is quoted for.
@@ -97,6 +98,7 @@ python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
 python3 scripts/purchase_terms.py --input <input.json> [--output <output.json>]
 python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
 python3 scripts/deadline_calendar.py --input <input.json> --ics <calendar.ics> [--output <output.json>]
+python3 scripts/confirmations.py --input <input.json> [--output <output.json>]
 ```
 
 Everything in angle brackets is a placeholder for an **absolute** path — the
@@ -136,7 +138,7 @@ From the repo root:
 python3 -m unittest discover -s tests
 ```
 
-That runs 815 tests in about ten seconds, with one skip — the avatar file
+That runs 861 tests in about eleven seconds, with one skip — the avatar file
 below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is
@@ -211,7 +213,7 @@ defect as a skill citing a script that was never written.
 - **Two of the six skills** — `scheme-radar` and `family-dispatch` — are **not
   written**. What exists today is the expert, the toolkit skill,
   `letter-triage`, `medication-watch`, `daily-brief`, `deadline-watch`, and the
-  eight scripts above. The toolkit is extended as each script lands, never ahead
+  nine scripts above. The toolkit is extended as each script lands, never ahead
   of it.
 - **`avatars/expert.png`** — a 1024×1024 PNG. The manifest already points at the
   path; the file is a human to-do and the test for it skips until it appears. It

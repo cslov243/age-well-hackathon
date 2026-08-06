@@ -109,6 +109,123 @@ def evidence_with(**changes):
     return merged
 
 
+def check_audit_hash(files, records_dir, as_of=TODAY.isoformat()):
+    """What a `check` run on these bytes produces. The record mode now
+    demands it, so every record-mode test has to have run check first —
+    which is the point of the requirement, not an inconvenience of it."""
+    return build_record(
+        {"as_of": as_of, "mode": "check", "source_files": list(files)},
+        records_dir)["audit_hash"]
+
+
+def with_check(document, records_dir):
+    """Inject the check hash unless the test is deliberately withholding it.
+
+    Defensive about shapes on purpose: several tests hand this script things
+    that are not valid documents at all, and the helper must not turn a
+    refusal under test into an AttributeError here.
+    """
+    if (isinstance(document, dict) and document.get("mode") == "record"
+            and "source_files" in document
+            and "check_audit_hash" not in document):
+        document = dict(document)
+        document["check_audit_hash"] = check_audit_hash(
+            document["source_files"], records_dir,
+            document.get("as_of") or TODAY.isoformat())
+    return document
+
+
+class TheCheckCallIsNotOptional(unittest.TestCase):
+    """Audit finding #25, and the second half of finding #22's lesson.
+
+    `check` before extraction is the idempotency guarantee: hash the pages,
+    ask whether these bytes are already filed, stop if they are. It was
+    documented in three places, pinned by two tests on the skill file, and on
+    6 August 2026 a cold agent skipped it anyway and filed a record for a
+    letter it had never asked about.
+
+    A rule the model is asked to follow is a rule the model sometimes does not
+    follow. This turns it into a precondition: `record` mode refuses unless it
+    is handed the `audit_hash` of a `check` run over the same bytes, and it
+    verifies that by recomputing the check itself rather than trusting the
+    value. Skipping the call stops being discouraged and becomes impossible.
+    """
+
+    def setUp(self):
+        self.stack = __import__("contextlib").ExitStack()
+        self.addCleanup(self.stack.close)
+        self.ws = Workspace(self.stack)
+        self.page = self.ws.page("letter.jpg")
+
+    def build(self, document):
+        # Deliberately raw: this class is what happens without the helper.
+        return build_record(document, self.ws.records)
+
+    def test_record_mode_refuses_without_the_check_hash(self):
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(request([self.page]))
+        self.assertIn("check_audit_hash", str(ctx.exception))
+
+    def test_the_refusal_says_what_to_run(self):
+        # The error is the whole mechanism. An agent that cannot tell from it
+        # what it skipped will hand-write a value to get past the door.
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(request([self.page]))
+        message = str(ctx.exception).lower()
+        self.assertIn("check", message)
+        self.assertIn("should_extract", message)
+
+    def test_a_correct_check_hash_is_accepted(self):
+        document = request([self.page])
+        document["check_audit_hash"] = check_audit_hash(
+            [self.page], self.ws.records)
+        self.assertIsNotNone(self.build(document)["record"])
+
+    def test_an_invented_hash_is_refused(self):
+        document = request([self.page], check_audit_hash="sha256:" + "0" * 64)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(document)
+        self.assertIn("does not match", str(ctx.exception))
+
+    def test_a_check_hash_from_a_different_letter_is_refused(self):
+        # The failure this actually prevents: check run on one page, record
+        # filed for another. Copying the hash forward from an earlier letter
+        # would file an unchecked document under a checked document's warrant.
+        other = self.ws.page("other.jpg", OTHER)
+        document = request([self.page])
+        document["check_audit_hash"] = check_audit_hash([other], self.ws.records)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(document)
+        self.assertIn("does not match", str(ctx.exception))
+
+    def test_check_mode_refuses_to_be_handed_one(self):
+        # Passing it to check is a mode typo, and a check that validates
+        # itself proves nothing.
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(request([self.page], mode="check",
+                               check_audit_hash="sha256:" + "0" * 64))
+        self.assertIn("check_audit_hash", str(ctx.exception))
+
+    def test_the_hash_it_demands_is_the_one_check_actually_printed(self):
+        # A guard on the guard. If record mode recomputed the check
+        # differently from the way check mode prints it, the requirement would
+        # be unsatisfiable and every agent would be forced to fake it.
+        printed = self.build(request([self.page], mode="check"))["audit_hash"]
+        document = request([self.page], check_audit_hash=printed)
+        self.assertIsNotNone(self.build(document)["record"])
+
+    def test_it_still_refuses_when_the_letter_is_already_filed(self):
+        # already_extracted is inside the check hash, so a hash taken before
+        # the first filing does not license a second one afterwards.
+        first = request([self.page])
+        first["check_audit_hash"] = check_audit_hash([self.page],
+                                                     self.ws.records)
+        self.build(first)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(first)
+        self.assertIn("does not match", str(ctx.exception))
+
+
 class ScriptShapeTests(unittest.TestCase):
 
     def test_it_lives_in_the_toolkit(self):
@@ -130,7 +247,8 @@ class ValidationTests(unittest.TestCase):
         self.page = self.ws.page("letter.jpg")
 
     def build(self, document):
-        return build_record(document, self.ws.records)
+        return build_record(with_check(document, self.ws.records),
+                            self.ws.records)
 
     def refuses(self, document, fragment):
         with self.assertRaises(InvalidInput) as caught:
@@ -242,7 +360,8 @@ class IdentityTests(unittest.TestCase):
         self.ws = Workspace(self.stack)
 
     def build(self, document):
-        return build_record(document, self.ws.records)
+        return build_record(with_check(document, self.ws.records),
+                            self.ws.records)
 
     def test_the_hash_follows_the_bytes_not_the_filename(self):
         first = self.build(request([self.ws.page("a.jpg")], mode="check"))
@@ -290,7 +409,8 @@ class IdempotencyTests(unittest.TestCase):
         self.page = self.ws.page("letter.jpg")
 
     def build(self, document):
-        return build_record(document, self.ws.records)
+        return build_record(with_check(document, self.ws.records),
+                            self.ws.records)
 
     def written(self):
         return sorted(path.name for path in self.ws.records.glob("*.json"))
@@ -362,7 +482,9 @@ class EvidenceGateTests(unittest.TestCase):
         self.page = self.ws.page("letter.jpg")
 
     def build(self, **kwargs):
-        return build_record(request([self.page], **kwargs), self.ws.records)
+        return build_record(
+            with_check(request([self.page], **kwargs), self.ws.records),
+            self.ws.records)
 
     def problems(self, result):
         return {row["field"]: row["reason"] for row in
@@ -442,8 +564,10 @@ class EvidenceGateTests(unittest.TestCase):
                 # no-op, which is the behaviour tested three classes up.
                 other = Workspace(self.stack)
                 result = build_record(
-                    request([other.page("letter.jpg")],
-                            evidence=evidence_with(deadline=snippet)),
+                    with_check(
+                        request([other.page("letter.jpg")],
+                                evidence=evidence_with(deadline=snippet)),
+                        other.records),
                     other.records)
                 self.assertEqual(result["record"]["deadline"], "2026-09-15",
                                  f"{snippet!r} was not accepted as evidence")
@@ -507,7 +631,9 @@ class EnvelopeTests(unittest.TestCase):
         self.page = self.ws.page("letter.jpg")
 
     def build(self, **kwargs):
-        return build_record(request([self.page], **kwargs), self.ws.records)
+        return build_record(
+            with_check(request([self.page], **kwargs), self.ws.records),
+            self.ws.records)
 
     def test_tool_run_id_is_a_uuid4(self):
         result = self.build()
@@ -522,7 +648,8 @@ class EnvelopeTests(unittest.TestCase):
 
     def test_the_audit_hash_replays(self):
         first = self.build()
-        second = build_record(request([self.page]), self.ws.records)
+        second = build_record(with_check(request([self.page]), self.ws.records),
+                              self.ws.records)
         # The second run is a no-op on an existing record, so hash the first
         # result again by hand: same inputs, same hash, different run id.
         self.assertNotEqual(first["tool_run_id"], second["tool_run_id"])
@@ -533,7 +660,9 @@ class EnvelopeTests(unittest.TestCase):
         other = Workspace(self.stack)
         page = other.page("letter.jpg")
         changed = build_record(
-            request([page], fields=fields_with(required_action="Do nothing.")),
+            with_check(request([page],
+                               fields=fields_with(required_action="Do nothing.")),
+                       other.records),
             other.records)
         self.assertNotEqual(first["audit_hash"], changed["audit_hash"])
 
@@ -562,11 +691,13 @@ class EnvelopeTests(unittest.TestCase):
             with self.subTest(doc_type=doc_type):
                 other = Workspace(self.stack)
                 result = build_record(
-                    request([other.page(f"{doc_type}.jpg",
-                                        doc_type.encode("utf-8"))],
-                            doc_type=doc_type,
-                            fields=fields_with(amounts=None),
-                            evidence=evidence_with(amount0=None)),
+                    with_check(
+                        request([other.page(f"{doc_type}.jpg",
+                                            doc_type.encode("utf-8"))],
+                                doc_type=doc_type,
+                                fields=fields_with(amounts=None),
+                                evidence=evidence_with(amount0=None)),
+                        other.records),
                     other.records)
                 self.assertIn(f"{article} letter", result["summary"])
 
@@ -593,7 +724,9 @@ class DecimalTests(unittest.TestCase):
 
     def test_an_amount_keeps_the_string_the_letter_used(self):
         result = build_record(
-            request([self.page], fields=fields_with(amounts=["1220.00"])),
+            with_check(request([self.page],
+                               fields=fields_with(amounts=["1220.00"])),
+                       self.ws.records),
             self.ws.records)
         self.assertEqual(result["record"]["amounts"], ["1220.00"])
 
@@ -602,7 +735,8 @@ class DecimalTests(unittest.TestCase):
         # script must take one without turning it into a float on the way out.
         document = parse(json.dumps(
             request([self.page], fields=fields_with(amounts=["1220.00"]))))
-        result = build_record(document, self.ws.records)
+        result = build_record(with_check(document, self.ws.records),
+                              self.ws.records)
         self.assertEqual(Decimal(result["record"]["amounts"][0]),
                          Decimal("1220.00"))
 
