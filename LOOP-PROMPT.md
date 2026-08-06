@@ -114,12 +114,12 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 12 | `pharmacy_cart.py` — cart draft from a run-out forecast. No API call, no invented price, prescription-only items routed away from the cart | Done |
 | 13 | `purchase_terms.py` and the `medication-watch` skill — the chain that makes the connectors visible | Done |
 | 13a | `daily-brief` — nearest clinic and days-of-supply in the senior card | Done |
-| 15 | `deadline-watch` — `deadline_calendar.py`, an `.ics` a person imports, and an optional confirmed calendar write | Next |
-| 14 | `letter-triage` — the entry point for the core loop | Later |
+| 15 | `deadline-watch` — `deadline_calendar.py`, an `.ics` a person imports, and an optional confirmed calendar write | Done |
+| 14 | `letter-triage` — the entry point for the core loop | Next, and at risk |
 
-**That is the whole backlog.** Four days to submission, and the demo has no
-entry point: nothing extracts a letter and nothing reaches the senior. 13a and
-14 are the two items that make the pitch true on stage. Everything else —
+**That is the whole backlog.** Three days to submission, and the demo still has
+no entry point: nothing extracts a letter. 14 is the one item left that makes
+the pitch true on stage. Everything else —
 deadline windows, the escalation cooldown, profile merge, the shared evidence
 validator, letter dedupe, `verify_scheme.py`, and the remaining three skills —
 is **cut**, not deferred, and must not be re-added before 9 August. Their
@@ -141,26 +141,28 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle H, backlog item 13a: `daily-brief`
+## Start here — cycle J, backlog item 14: `letter-triage`
 
-The second skill, and the one the senior actually hears. `medication-watch`
-tells her what is running out; this is the 8am briefing that reaches her whether
-or not anything is wrong.
+The entry point of the core loop, and the last thing standing between the pitch
+and the demo: nothing in the repo extracts a document today. **This is the item
+at risk** — two days to submission — so scope it to one document type working
+end to end rather than to six.
 
 Re-read `docs/WORKBUDDY-PLATFORM.md` first. Skill format is not in your training
 data and the published docs are wrong in at least one place.
 
-- Scheduled 8am, **and** caregiver-triggered. Whether an unattended run clears
-  the permission dialog is `[UNKNOWN]`; write for both answers.
-- **Senior-facing first.** The family artifact is the secondary one here, which
-  is the reverse of every other skill. Address her directly, second person.
-- **Consumes structured records only** — `extracted/`, the forecast, the profile.
-  It re-reads no document and invokes no vision model, which is what makes a
-  daily run cost almost nothing.
-- `clinic_finder.py` supplies the place and distance when one is needed. **Never
-  call it a walk** — it is a straight line and no route was computed.
-- A day with nothing due still produces both artifacts. A brief that appears
-  only when something is wrong teaches her that its arrival is bad news.
-- Append one line to `out/senior/shared_log.jsonl`.
-- Follow `skills/medication-watch/SKILL.md` for shape — same frontmatter rules,
-  same checklist, its own word budget in `tests/test_daily_brief.py`.
+- **On file arrival**, and equally caregiver-triggered. Whether a watched folder
+  fires unattended is `[UNKNOWN]`; write for both answers.
+- **Extraction is the one thing the model does here.** Every number after that
+  comes from a script — `insurance_claim_review.py` for a `doc_type` of
+  `insurance`, which is deliberately not a seventh skill.
+- **The evidence rule is the whole difficulty.** A field with no verbatim
+  snippet is `null`, listed in `missing_evidence`, and the record is flagged
+  `REQUIRES_HUMAN_CONFIRMATION`. Absent is not the same as unquotable, and
+  substituting zero for the second once produced SGD 4,320.00 in place of
+  SGD 1,220.00.
+- **One JSON file per record** in `extracted/`, id-named. The image moves to
+  `processed/` and is never re-read.
+- Both artifacts, and a `shared_log.jsonl` line.
+- Follow `skills/deadline-watch/SKILL.md` for shape — same frontmatter rules,
+  same checklist, its own word budget in `tests/test_letter_triage.py`.

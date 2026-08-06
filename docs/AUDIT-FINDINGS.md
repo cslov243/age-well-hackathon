@@ -15,7 +15,7 @@ marked `Rewritten` was written fresh here and tested, not repaired.
 |---|---------|--------|
 | 1 | `expense_split.py` silently ignores custom weights | Rewritten |
 | 2 | `medication_runout.py` rounds half-days to even, and upward | Rewritten |
-| 3 | `deadline_window.py` — `this_week` status is wrong | Open |
+| 3 | `deadline_window.py` — `this_week` status is wrong | Rewritten — `deadline_calendar.py` |
 | 4 | No escalation cooldown exists anywhere | Open |
 | 5 | Prose citing a script that does not exist — now `tests/test_skill_manifest.py` and the same check in `tests/test_readme.py` | Guarded |
 | 6 | No letter-record deduplication | Open |
@@ -24,6 +24,8 @@ marked `Rewritten` was written fresh here and tested, not repaired.
 | 9 | `SKILL.md` documents `split_rule` as a string; the script needs an object | Open |
 | 10 | Reporting instructions are ignored while refusals are obeyed | Open |
 | 11 | `HouseholdProfile` has two different paths | Open — needs a decision |
+| 12 | "the `.ics` is the answer" reads as an offer, not as work to do | Open |
+| 13 | `deadline-watch` does not reliably win the route for a calendar request | Open |
 
 `Open` items are on the backlog in `LOOP-PROMPT.md`. #8 was dropped as
 unbuildable offline and reopened on 6 August in the form that is buildable:
@@ -109,6 +111,15 @@ If `daily-brief` filters on `status == "this_week"`, it surfaces a September
 deadline in the 3 August brief, every day, forever.
 
 Fix: `(remind_on - as_of).days <= 7`.
+
+**Closed 6 August 2026.** `deadline_window.py` was never repaired — it was cut,
+and `skills/care-coordinator-toolkit/scripts/deadline_calendar.py` was written
+in its place with proximity as `(date - as_of).days <= horizon_days`. The 58-day
+reproduction above is pinned in both directions in
+`tests/test_deadline_calendar.py`: omitted as `beyond_horizon` under a 7-day
+horizon, scheduled under a 60-day one. The window is no longer compared to
+itself anywhere, and the horizon it *is* compared against has no default, so
+nobody inherits a 7 that was never chosen.
 
 ---
 
@@ -299,3 +310,58 @@ of clobber, finding #7) would be the second.
 `docs/CONTRACTS.md` to be flagged rather than quietly reconciled on both sides.
 Decide which path is canonical, then change one file and every reference to it
 in the same cycle.
+
+---
+
+## 12. "The `.ics` is the answer" reads as an offer, not as work to do — MEDIUM
+
+Measured 6 August 2026, eval cases E and F. Both cold agents handled the
+disclosure and the credential correctly, and **both ended their turn having
+produced no file.** Case F said "I'll prepare a calendar file (`.ics`) that you
+can import yourself" in the future tense after declining the batch write; case E
+asked which detail level to use and stopped, which is right, but neither ran
+`medication_runout.py` first even though nothing about the dates depends on the
+answer.
+
+`skills/deadline-watch/SKILL.md` says *"On refusal, or with none available, the
+`.ics` is the answer. Say where it is and that they import it themselves — a
+complete run, not a degraded one."* Read cold, that describes a state of affairs
+rather than instructing an action, and the agent describes it back.
+
+**The imperative rewrite was tried the same day and did not work.** Changed to
+*"write the `.ics` anyway and say where it is. Do not offer to produce it
+later"*, and a fresh cold agent still offered it — while quoting the file's own
+"a complete run, not a backup plan" back in the sentence where it declined to do
+it. So this is not finding #10 repeating.
+
+**What it actually is: the instruction contradicted the two above it.**
+`horizon_days` and `detail_level` have no defaults and must be asked for. An
+agent that has neither cannot write the file, so "produce it anyway" is
+unfollowable, and the agent did the only coherent thing left — described it.
+
+The bullet now names both settings and says to ask for them in the same breath
+as the refusal. `tests/test_deadline_watch.py` pins that the fallback mentions
+both, which is structure rather than wording. **Still open**: the fix is
+reasoned, not measured. Re-run case F next cycle before closing it.
+
+---
+
+## 13. `deadline-watch` does not reliably win the route for a calendar request — LOW
+
+Same run. Asked to "put my mother's medication dates in my calendar", case E
+read `skills/medication-watch/SKILL.md` and the toolkit, and found
+`deadline_calendar.py` through the toolkit's script section — never opening
+`skills/deadline-watch/SKILL.md` at all. Case F, asked about the calendar with
+no mention of medication, read `deadline-watch` and cited it accurately.
+
+Nothing broke: the toolkit section carried enough to make the disclosure
+decision, and case E made it correctly. But the per-event confirmation protocol
+lives **only** in `deadline-watch/SKILL.md`. A calendar request phrased around
+medication reaches the script without reaching the rule that governs writing to
+a real calendar.
+
+The description leads with "Collects the dates already computed"; a request
+containing "medication" matches `medication-watch` more strongly. Worth a
+description that leads with the calendar, and worth re-measuring rather than
+assuming — a description rewritten for routing is exactly the change that was
+measured to be worth less than it looks (6 August, the string-matching removal).

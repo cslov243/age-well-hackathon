@@ -12,7 +12,8 @@
   "skills": [
     "./skills/care-coordinator-toolkit",
     "./skills/medication-watch",
-    "./skills/daily-brief"
+    "./skills/daily-brief",
+    "./skills/deadline-watch"
   ],
 
   "expertType": "agent",

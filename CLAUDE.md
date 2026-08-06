@@ -86,7 +86,7 @@ produces a confident wrong number.
 | `daily-brief` | scheduled 8am | **Yes** |
 | `medication-watch` | scheduled daily | **Yes** |
 | `scheme-radar` | scheduled weekly | No |
-| `deadline-watch` | scheduled daily | No |
+| `deadline-watch` | scheduled daily | **Yes** |
 | `family-dispatch` | event-driven | No |
 
 `letter-triage` also handles `doc_type: "insurance"` via
@@ -97,9 +97,9 @@ Whether unattended scheduled runs clear WorkBuddy's permission dialog is
 
 ## What exists
 
-Six scripts, the manifest, the agent, the toolkit `SKILL.md`, the
-`medication-watch` and `daily-brief` skills, the README. Backlog:
-`LOOP-PROMPT.md`.
+Seven scripts, the manifest, the agent, the toolkit `SKILL.md`, the
+`medication-watch`, `daily-brief` and `deadline-watch` skills, the README.
+Backlog: `LOOP-PROMPT.md`.
 
 - `python3 -m unittest discover -s tests` runs everything.
 - The one skip is `avatars/expert.png`, a **human to-do**. Not stubbed: a

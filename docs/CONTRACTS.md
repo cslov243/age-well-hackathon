@@ -437,6 +437,58 @@ opened. `docs/DECISIONS.md` records why the purchase itself is never built.
 
 ---
 
+## DeadlineCalendar
+
+Written by `scripts/deadline_calendar.py`. Added 6 August 2026. **Additive** —
+it introduces no field on any existing record; every date it emits was already
+computed by `medication_runout.py` or `insurance_claim_review.py`.
+
+Input: `forecast` and `claims`, each a whole result passed **verbatim** or an
+explicit `null`. **Both keys are required even when null**, because an absent
+key and a misspelled one are indistinguishable inside the script and one of them
+means a set of deadlines was silently scheduled into nothing. Each `audit_hash`
+is recomputed with the function that wrote it — imported, not reimplemented —
+and a mismatch is refused. A source dated after `as_of` is refused.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `horizon_days` | int ≥ 1 | **Required, no default.** How far ahead to look is a person's call. |
+| `detail_level` | `minimal` \| `named` | **Required, no default.** A disclosure decision, not a formatting one. |
+| `events[]` | list | `{uid, kind, starts_on, days_away, title, body, source_tool, source_id, source_tool_run_id, source_audit_hash, discloses}`. |
+| `omitted[]` | list | `{kind, source_id, starts_on, reason, detail}`. |
+| `counts` | object | `events + omitted == dates_considered`. |
+| `disclosure` | object | `{required, discloses, note}`. `required` is true whenever any event names something. |
+
+Dates are **copied**: `order_by` and `runs_out_on` from the forecast,
+`deadlines[].due_on` from the claims review. The only arithmetic is
+`(date - as_of).days`, and it decides one thing — whether a date falls inside
+`horizon_days`. Comparing a reminder window against itself is the defect
+recorded as audit finding #3, which reported a deadline 58 days away as due this
+week, every day. Proximity is measured against `as_of` and nothing else.
+
+Omission reasons: `no_date` (the source never had one to copy),
+`beyond_horizon`, `already_passed`. An already-passed deadline is **not**
+back-dated into the calendar — an entry in the past notifies nobody, so it is
+reported in prose to a person instead.
+
+`kind` is `medication_order_by`, `medication_runs_out`, `claim_submission` or
+`claim_appeal`. `uid` is derived from the source `audit_hash`, the kind, the
+source id and the date, so an unchanged re-run reproduces it and a second import
+updates rather than duplicates.
+
+### A calendar is a shared surface
+
+At `minimal` no event names a medicine, condition, insurer or amount — the
+title says something is due and the family artifact says what. `named` is a
+disclosure: `disclosure.required` comes back true and a line belongs in
+`out/senior/shared_log.jsonl`. The choice is never made on her behalf.
+
+The `.ics` written to `--ics` is the deliverable and requires no integration to
+work. Nothing in this script writes to a calendar; a write beyond the file is a
+separate action confirmed one event at a time.
+
+---
+
 ## HouseholdProfile
 
 Single source of truth. Lives at `out/household_profile.json`, read at the top of

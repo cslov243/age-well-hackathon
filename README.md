@@ -19,7 +19,7 @@ An expert plus three skills, in a single plugin:
   rules it does not break.
 - `skills/care-coordinator-toolkit/SKILL.md` — when and how to invoke each
   script, and what the toolkit refuses to do.
-- `skills/care-coordinator-toolkit/scripts/` — six deterministic scripts.
+- `skills/care-coordinator-toolkit/scripts/` — seven deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
   refreshed by a person and read from disk.
 - `skills/medication-watch/SKILL.md` — the daily supply check and the pharmacy
@@ -28,6 +28,9 @@ An expert plus three skills, in a single plugin:
   written to first** and the family copy is the secondary one. Reads structured
   records only: no vision model, no document re-read, so a daily run is nearly
   free.
+- `skills/deadline-watch/SKILL.md` — what falls due inside a window, written out
+  as a calendar file the family imports. Any write into a real calendar is
+  confirmed one event at a time.
 
 There is nothing to install beyond copying the plugin in. The scripts are
 Python 3, standard library only: no `pip` step, no third-party package, no
@@ -59,7 +62,7 @@ reproduced months later. And the scheduled work costs almost nothing in tokens,
 because it is arithmetic over structured records rather than a model re-reading
 documents.
 
-## The six scripts
+## The seven scripts
 
 | Script | What it computes |
 |---|---|
@@ -69,8 +72,9 @@ documents.
 | `clinic_finder.py` | The nearest clinics to a point in a dated snapshot, by straight-line distance rounded to 10 m. |
 | `purchase_terms.py` | How each medicine is obtained, copied from the household file so no model ever infers it. |
 | `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
+| `deadline_calendar.py` | Dates already computed by the two scripts above, turned into calendar events and an `.ics` a person imports. It copies dates and computes none. |
 
-All six take the same form:
+They take the same form, one of them with a further path of its own:
 
 ```
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
@@ -79,6 +83,7 @@ python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
 python3 scripts/clinic_finder.py --input <input.json> [--output <output.json>]
 python3 scripts/purchase_terms.py --input <input.json> [--output <output.json>]
 python3 scripts/pharmacy_cart.py --input <input.json> [--output <output.json>]
+python3 scripts/deadline_calendar.py --input <input.json> --ics <calendar.ics> [--output <output.json>]
 ```
 
 Everything in angle brackets is a placeholder for an **absolute** path — the
@@ -190,10 +195,10 @@ Not omissions, and not a roadmap.
 Named plainly, because a README that lists intentions as features is the same
 defect as a skill citing a script that was never written.
 
-- **Four of the six skills** — `letter-triage`, `scheme-radar`,
-  `deadline-watch`, `family-dispatch` — are **not written**. What exists today is
-  the expert, the toolkit skill, `medication-watch`, `daily-brief`, and the six
-  scripts above. The toolkit is extended as each script lands, never ahead of
+- **Three of the six skills** — `letter-triage`, `scheme-radar`,
+  `family-dispatch` — are **not written**. What exists today is the expert, the
+  toolkit skill, `medication-watch`, `daily-brief`, `deadline-watch`, and the
+  seven scripts above. The toolkit is extended as each script lands, never ahead of
   it.
 - **`avatars/expert.png`** — a 1024×1024 PNG. The manifest already points at the
   path; the file is a human to-do and the test for it skips until it appears. It

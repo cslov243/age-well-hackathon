@@ -55,8 +55,14 @@ ARGUMENT = r"(?:<[^<>]+>|/[^\s<>]+)"
 # placeholder form carries the square brackets that mark it optional, the
 # concrete form does not. Accepting a mismatched bracket would defeat the point
 # of checking the contract character for character.
+# A script may take a further required path argument of its own —
+# `deadline_calendar.py --ics <calendar.ics>` writes the file a person imports,
+# and making that a flag rather than a field in the payload keeps the standing
+# rule that every path arrives as an argument. Those extras are held to the same
+# absolute-or-placeholder rule as `--input`.
 INVOCATION = re.compile(
     rf"^python3 scripts/(\w+\.py) --input {ARGUMENT}"
+    rf"(?: --\w+ {ARGUMENT})*"
     rf"(?: \[--output <[^<>]+>\]| --output /[^\s<>]+)?$")
 ABSOLUTE_ARGUMENT = re.compile(r"--input /[^\s<>]+")
 
@@ -228,6 +234,19 @@ class InvocationContractTests(unittest.TestCase):
                 self.assertTrue(
                     argument.startswith(("<", "/")),
                     f"relative --input path: {argument}")
+
+    def test_no_invocation_passes_a_relative_path_to_any_other_flag(self):
+        # --input is not the only path a script takes any more. A relative one
+        # anywhere on the line is the same latent failure.
+        for line in self.lines:
+            words = line.split()
+            for flag, argument in zip(words, words[1:]):
+                if not flag.startswith("--") or argument.startswith("-"):
+                    continue
+                with self.subTest(line=line, flag=flag):
+                    self.assertTrue(
+                        argument.lstrip("[").startswith(("<", "/")),
+                        f"relative path passed to {flag}: {argument}")
 
 
 class RequiredInputTests(unittest.TestCase):
