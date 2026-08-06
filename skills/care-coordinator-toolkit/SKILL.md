@@ -18,6 +18,17 @@ If a number is needed and no script produced it, say so and stop. If a script
 raises, report the error and the input that caused it. Never work around a
 failure by hand.
 
+**A derivation is prose arithmetic even when the result came from a script.**
+`30 days from 28 July = 27 August` printed beside a date `insurance_claim_review.py`
+computed is a second calculation, done by you, that happens to agree today. If
+the two ever disagree a reader has no way to tell which one is load-bearing.
+Print the figure and the script that produced it, and never your own working.
+
+Quoting a script's `summary` verbatim is not this, even where that summary
+spells out how it got there — *"30 days from the insurer's decision date,
+28 Jul 2026, closing 27 Aug 2026"* is `insurance_claim_review.py` showing its
+own arithmetic, and it replays. Retyping that as a line of your own does not.
+
 ## How to invoke
 
 ```
@@ -318,10 +329,24 @@ artifacts state an answer to.
 required and `[]` is legal; an absent key means a whole set of flags was never
 read.
 
-**Quote `sentence` verbatim into both artifacts.** Do not compose your own.
-Whether a person is needed is not a judgement you make from the flag lists you
-happened to read — it is this script's output, exactly as an amount is
-`expense_split.py`'s.
+**Quote `sentence` verbatim into both artifacts, and every `items[].ask` with
+it.** Do not compose your own. Whether a person is needed is not a judgement you
+make from the flag lists you happened to read — it is this script's output,
+exactly as an amount is `expense_split.py`'s.
+
+**The `ask` is the half that gets acted on, and the half that gets retold.**
+`sentence` answers for the whole run; each `items[].ask` says what one person
+must go and do about one field. Audit finding #24: an artifact quoted `sentence`
+word for word and rewrote the `ask` beside it. The script had said *read the
+deadline off the document, and check the wording it was taken from*; the artifact
+said *verify the deadline calculation (30 days from 28 July = 27 August)*. **The
+substitution ran the wrong way.** The letter's wording was the part that could
+not be quoted — that is why the field was nulled — and the arithmetic was the one
+part a script did deterministically and nobody needs to check. A person was sent
+to audit a subtraction while the unquotable sentence went unread.
+
+Every `ask` names a field and a document, because reading the document is always
+what it wants. If yours names a calculation instead, you have rewritten it.
 
 **A clean list from one script is not a clean run.** Audit finding #22: a
 family artifact certified "No human confirmation required" over a record
@@ -358,6 +383,45 @@ Read her language from `HouseholdProfile`, never assume it. Large print, plain
 words, every acronym expanded, second person. Step 5 appends one line to
 `out/senior/shared_log.jsonl`: what was shared about her, with whom, when. Append
 only.
+
+## When a script refuses
+
+A refusal is an answer, not a retry prompt. Every case below exits non-zero with
+one line on stderr and **nothing on stdout** — the script declined to guess, and
+the fix is upstream of it. The reason each is fatal rather than a warning is that
+the alternative is a plausible wrong number in a letter about someone's care.
+
+**The one rule that governs all of them: never make a refusal pass by changing
+what the input means.** Renaming a key the script rejected, deleting the field it
+objected to, or editing a snippet until it matches are all the same move, and
+each turns a caught error into a silent wrong answer.
+
+| What stderr says | What happened | What to do |
+|---|---|---|
+| `input file not found: <path>` | A relative path. The working directory at invocation is not something you can rely on. | Re-run with an absolute path. |
+| `input has unrecognised keys: <key>. … Allowed: …` | A misspelled key. To `.get()` a typo and an absent key are identical, so it would have taken no effect and read downstream as *the letter never said it*. | Correct the spelling. **Never delete the key** — the value was meant to be there. |
+| `<key> is required (use [] for none)` | A required key is not a defaulted one. `[]` is legal and means *none*; absent means *nobody looked*. | Send `[]` if there genuinely are none. |
+| `default_lead_time_days is required…` | There is no safe hardcoded guess about how long a repeat prescription takes to arrive. | Ask the caregiver. Do not pick a number. |
+| `expected an ISO date string (YYYY-MM-DD)` / `expected an amount as a string` | A shape the script will not coerce. | Fix the payload. Amounts are strings; dates are `YYYY-MM-DD`. |
+| `<field> audit_hash does not match its contents (stored …, recomputed …)` | A result was edited between the script that produced it and the script consuming it. | Re-run the producer and copy its output **whole**. Never hand-edit a result, and never adjust the hash. |
+| `snapshot not found: <path>` | A dated reference is missing. | A person refreshes it. Never fetch around it and never answer from memory. |
+
+Two outcomes look like failures and are not:
+
+- **`<value> does not appear in the text quoted for it … nulled and flagged`** —
+  this is the evidence gate doing its job, and the run continues. The field is
+  `null`, the record carries `REQUIRES_HUMAN_CONFIRMATION`, and a person reads
+  that field off the document. **Do not edit the snippet to match, and do not
+  substitute a value you can quote instead.** The quotation was the evidence; a
+  value that disagrees with it is the one that is wrong.
+- **`This document is already extracted — … This run is finished, not blocked.`**
+  — exit 0, nothing written, no artifacts. The letter was filed by an earlier
+  run. Quote that record and the `audit_hash` inside it. **Do not delete or move
+  it to file the letter again**: it is the only evidence the letter was ever
+  read, and a second record competes with it rather than corrects it.
+
+Exit 0 with `REQUIRES_HUMAN_CONFIRMATION` in the flags is likewise a **successful
+run that needs a person**, not a failed one. Report it as the finding it is.
 
 ## What this skill does not do
 

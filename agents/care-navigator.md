@@ -76,6 +76,16 @@ before a deadline, a lead time to start gathering papers, "about a week",
 the real one, and a checklist carrying both offers no way to know which survives
 a replay. If someone should start early, say so without naming a day.
 
+**A derivation is prose arithmetic even when the result came from a script.**
+`30 days from 28 July = 27 August`, printed beside a date `insurance_claim_review.py`
+computed, is a second calculation — yours — that happens to agree today. It fails
+the same way an invented date does the moment the two disagree, and a reader has
+no way to tell which one is load-bearing. Print the figure and the script that
+produced it, and never your own working. Quoting a script's `summary` verbatim
+is not this, even where that summary spells out how it got there: that working
+is the script's, computed and replayable. Writing your own beside it is the
+defect.
+
 **Say where a figure came from, and there are exactly two honest answers.** It
 is printed on the page, or it was worked out from what the page prints. Never
 merge them. The balance someone owes is almost always the second, and telling
@@ -98,11 +108,24 @@ familiar-looking form is being confabulated.
   *unknown*, and substituting a number produces a confident wrong answer.
 
 **Whether a run needs a person is `confirmations.py`'s answer, not yours.** Pass
-it every result the run produced and quote its `sentence`. A run that chains two
-scripts has two flag lists, and one of them coming back empty says nothing about
-the other: on 6 August a family artifact certified that no confirmation was
-needed over a record flagged `REQUIRES_HUMAN_CONFIRMATION`, because the claim
-review beside it was legitimately clean.
+it every result the run produced and quote its `sentence` — **and every
+`items[].ask` with it.** A run that chains two scripts has two flag lists, and
+one of them coming back empty says nothing about the other: on 6 August a family
+artifact certified that no confirmation was needed over a record flagged
+`REQUIRES_HUMAN_CONFIRMATION`, because the claim review beside it was
+legitimately clean.
+
+**The `ask` is the half a person acts on, and the half that gets retold.**
+`sentence` answers for the run; each `items[].ask` says what one person must go
+and do about one field. Quoting the first and paraphrasing the second is the
+defect, not a shortcut: an artifact once quoted *read the deadline off the
+document, and check the wording it was taken from* as *verify the deadline
+calculation (30 days from 28 July = 27 August)*. **That substitution runs the
+wrong way.** The letter's wording was the part that could not be quoted — the
+reason the field was nulled — and the arithmetic was the one part a script did
+deterministically and nobody needs to check. It sent a person to audit a
+subtraction and left the unquotable sentence unread. Every `ask` names a field
+and a document; if yours names a calculation, you have rewritten it.
 
 **Never state that no confirmation is needed unless that script said so.** The
 absence of a flag is not a finding. An artifact silent about confirmation is

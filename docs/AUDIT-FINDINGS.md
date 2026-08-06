@@ -1225,3 +1225,44 @@ has a directory of its own, and whether `--output` stays optional. That decision
 changes `docs/CONTRACTS.md` — **stop and flag it** before making it.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 29. Three scripts still ignore an unrecognised top-level key — MEDIUM
+
+Found 7 August 2026, cycle R, while verifying the fix for
+[#19](#19-the-same-script-ignores-an-unrecognised-top-level-key--medium).
+`insurance_claim_review.py` now guards its own top level. Six of the nine
+scripts call `_reject_unknown` somewhere; **`expense_split.py`,
+`medication_runout.py` and `clinic_finder.py` never do**, and all three read
+`as_of` through `.get()` with a fall-back to SG today.
+
+`expense_split.py` is the one measured:
+
+```
+$ python3 expense_split.py --input split.json     # as_of renamed as_off
+INFO expense_split as_of absent; resolved once to SG today 2026-08-07
+INFO expense_split split 1000.00 across 2 member(s) in mode even; 1 expense(s)
+exit=0
+```
+
+The split itself is unaffected — money does not depend on the date. What the
+date does control is the `spent_on > as_of` guard on every expense, so a
+back-dated reconciliation silently stops rejecting expenses dated after the
+period it claims to cover. `clinic_finder.py` reads `programme`, `limit`,
+`radius_metres` and `snapshot_path` the same way, and a misspelled `programme`
+is a filter that quietly does not apply.
+
+**Reproduce:** rename `as_of` to `as_off` in any valid payload for each of the
+three and observe exit 0.
+
+**Fix:** the two lines #19 took — a `DOCUMENT_KEYS` tuple and one
+`_reject_unknown(document, DOCUMENT_KEYS, "input")` at the top of each entry
+point. The helper is already written in each of the three files' idiom; only
+`clinic_finder.py` needs care, because its allowed set is conditional on
+`snapshot_path`.
+
+**Not a contract change.** Every key involved is already documented in
+`docs/CONTRACTS.md`; this refuses spellings that are not in it.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.

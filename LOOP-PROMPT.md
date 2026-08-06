@@ -147,7 +147,7 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle R: the figure in her copy
+## Start here — cycle R: what the artifacts say
 
 **Cycles P and Q closed the `check` question for good.** `record` mode now
 refuses without the `check` run's `audit_hash` and recomputes it rather than
@@ -167,31 +167,95 @@ scripts in order for the first time, invented no date and no subtraction — and
 wrote the wrong amount in the senior's copy. Read the cycle Q block in
 `evals/RESULTS.md` before picking anything.
 
-- **#27 — her copy spelled SGD 1,220.00 out as "two thousand two hundred and
-  twenty dollars". Take this first.** It is HIGH, it is in the artifact for the
-  primary user, and it is the first measured defect a caregiver reading the
-  family artifact would not catch — the two disagree and nothing compares them.
-  No rule was broken: nothing was *computed*, a figure was **re-expressed**, and
-  the split of labour has never said anything about what prose may do to a
-  number after a script produced it. Digits beside the words is the cheapest
-  fix; a script that emits the spoken form is the one that matches the design.
-- **#24 — the ask is quoted as a sentence and paraphrased as a task**, and in
-  cycle Q her copy composed a status of its own: *"everything in this letter is
-  clear and certain"*, beside a record whose `deadline` is `null` because it was
-  not. Consider quoting `items[].ask` rather than `sentence`.
-- **#21's remaining half — the offer, not the ban.** Three cycles now: her copy
-  still does not say the balance was worked out from the page.
-- **#23 and #28 are one decision, not two.** Inputs went to `/dev/stdin` this
-  time and nothing survived the run at all, and the claim review's `--output`
-  landed in `extracted/` because no skill file says where a result goes. Whether
-  `--output` stops being optional and whether a run gets a directory of its own
-  is a `docs/CONTRACTS.md` change — **stop and flag it**.
-- **#19 — the unknown-key hole one level up** in `insurance_claim_review.py`.
-  Two lines, the helper exists.
-- **#18 — `deadline-watch` has neither half of the language rule**, and no eval
-  case has ever reached its senior copy.
-- **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
-  canonical: `household/profile.json` or `out/household_profile.json`.
+### How this order was set, 6 August 2026
+
+Reranked after asking of each open finding: **would a more capable model at demo
+time fix this?** The eval runs Haiku on purpose — `evals/CASES.md` step 3, *the
+point is whether the instructions carry, not whether the model is clever* — so a
+failure there is not evidence about the model. And nothing in `plugin.json` pins
+a model: WorkBuddy's user picks one in the app, and the only documented
+interaction is a toast when the choice lacks vision. A judge installs the plugin
+and runs it on whatever they had selected. **"We will run a strong model" is not
+a property this plugin can ship**, so it cannot be the answer to any finding
+below.
+
+That question sorts the backlog cleanly. A finding whose rule **is not written
+anywhere** cannot be model-fixed — no model follows an instruction that is
+absent. Those come first, and they turn out to be most of what is left.
+
+Order is: cannot-be-model-fixed × visible in the demo artifact × cost.
+
+### Done in cycle R, 7 August 2026 — items 1, 3 and 4 below
+
+- **#24 — closed in prose.** The derivation rule and the `items[].ask` rule are
+  now in `agents/care-navigator.md` (normative), the toolkit `SKILL.md` and
+  `skills/letter-triage/SKILL.md`. Both carry the caveat that quoting a script's
+  own `summary` verbatim is *not* the defect, even where that summary spells out
+  its own arithmetic — without it the rule contradicts every skill that says to
+  quote `summary`.
+- **#19 — closed in code.** `DOCUMENT_KEYS` plus one `_reject_unknown` call in
+  `insurance_claim_review.py`. A misspelled `as_of` now exits 2 naming the key
+  and the allowed set, instead of exiting 0 against today's date.
+- **#18 — closed both halves.** The two `daily-brief` bullets are in
+  `skills/deadline-watch/SKILL.md` and pinned in `tests/test_deadline_watch.py`.
+  That file is at its 946-word budget: **five sentences elsewhere were tightened
+  to pay for them**, including one duplicate never-compute-a-date bullet already
+  stated twice. Anything added there now has to buy its space the same way.
+- **New: #29** — `expense_split.py`, `medication_runout.py` and
+  `clinic_finder.py` still have #19's hole. Found while verifying this cycle,
+  logged with a reproduction, not fixed.
+- A **troubleshooting section** was added to the toolkit `SKILL.md` — every
+  refusal a caller can hit, verified against the real stderr, and the two
+  outcomes that look like failures and are not.
+
+**Still open, in order: 2 (#27), then 5, 6, 7 below.**
+
+1. ~~**#24**~~ — **DONE, cycle R.** Kept for the reasoning.
+   **The `ask` is quoted as a sentence and paraphrased as a task.**
+   Not a model slip, which is what it looked like at first read. `confirmations.py`
+   emits a per-item `ask`, and **the checklist never names that field** — it says
+   quote the `sentence`. A field the checklist does not mention is a field that
+   gets retold, at any capability. The substitution also runs the wrong way: it
+   sends a person to audit a subtraction a script did deterministically and
+   leaves the unquotable sentence unread. Quote `ask` as well as `sentence`, and
+   add to the toolkit rule that **a derivation is prose arithmetic even when the
+   result came from a script** — `30 days from 28 July = 27 August` is invented
+   reasoning beside a real date. Cycle Q's copy also composed *"everything in
+   this letter is clear and certain"* beside a `null` deadline; same shape as
+   #22, which closed by giving the flag a script.
+2. **#27 — HIGH. Her copy spelled SGD 1,220.00 out as "two thousand two hundred
+   and twenty dollars".** The one finding here where a stronger model genuinely
+   helps — it is arithmetic-free re-expression and a good model mostly gets it
+   right. Do the **cheap half only: digits beside the words.** One line in a
+   skill file. Not the script that emits the spoken form; that is the design-pure
+   fix and there is no time for it. It ranks this high despite being
+   capability-shaped because it is the only measured defect **neither reader can
+   catch** — the family copy and her copy disagree and nothing compares them, and
+   she is the person who cannot check it against the letter.
+3. ~~**#19**~~ — **DONE, cycle R.** The unknown-key hole one level up in `insurance_claim_review.py`.
+   Two lines, the helper exists, no model touches it: a misspelled `as_of`
+   resolves to today and every `days_remaining` and `overdue` in the output is
+   computed from the wrong day, at exit 0, under a log line reading `as_of
+   absent`. Right by coincidence today; wrong on any historical run.
+4. ~~**#18**~~ — **DONE, cycle R.** `deadline-watch` had neither half of the language rule. The rule is
+   **not in the file**, so capability is irrelevant. It is the skill that runs
+   daily, and the failure mode is defaulting her language, which is the thing the
+   product exists to prevent. Copy `daily-brief`'s wording, which is the only
+   version measured to work.
+5. **#23 + #28 + #11 — three decisions, one sitting.** All three are
+   `docs/CONTRACTS.md` changes and therefore **stop-and-flag**; none is a cycle
+   until answered. (a) Does `--output` stop being optional, and does a run get a
+   directory of its own inside the workspace? Cycle Q sent every input through
+   `/dev/stdin` and nothing survived the run, so two artifacts quote an
+   `audit_hash` nothing on disk can replay. (b) Where does a review output go —
+   it landed in `extracted/`. (c) Which `HouseholdProfile` path is canonical:
+   `household/profile.json` or `out/household_profile.json`.
+6. **#21's remaining half — the offer, not the ban.** Open three cycles. Her copy
+   still does not say the balance was worked out from the page. Genuinely
+   capability-shaped and the least likely to bite in a controlled demo. **Do only
+   if 1–4 are done and the eval is clean.**
+7. **#13 — LOW, ship as is.** `deadline-watch` does not reliably win the route
+   for a calendar request. Not worth a cycle before 9 August.
 
 **Then re-run case G and read the artifacts — both of them, side by side.**
 Every defect in this case for six cycles has been invisible in the JSON and
@@ -199,3 +263,11 @@ plain in the prose, and #27 was invisible in the family copy too. **Diff every
 figure in `out/senior/` against the record and the claim review by eye.**
 
 Every script on disk is frozen except for #19's one check.
+
+### The answer to give a judge
+
+The pitch is *this agent cannot invent a deadline*. If asked what happens on a
+weaker model, **"we run a good one" concedes the claim.** The answer is that
+every number comes from a script and the evidence gate is Python — true today,
+and the reason the remaining gaps must be in prose polish rather than in the
+enforcement path.

@@ -549,6 +549,60 @@ class TestUnrecognisedClaimKeys(unittest.TestCase):
         self.assertEqual(set(claim()), set(icr.CLAIM_KEYS))
 
 
+class TestUnrecognisedTopLevelKeys(unittest.TestCase):
+    """Audit finding #19. The same defect as #17, one level up.
+
+    `claims` is required, so a typo there is caught. `as_of` is not: it resolves
+    to SG today when absent, and an absent key and a misspelled one are the same
+    thing to `.get()`. A historical run — the skill reviewing a letter against
+    the date it arrived — then silently reviews it against today, and every
+    status, `days_remaining` and `overdue` in the output is computed from the
+    wrong day while the log line reads an innocuous `as_of absent`.
+    """
+
+    def test_a_misspelled_as_of_is_refused_not_read_as_absent(self):
+        doc = payload()
+        doc["as_off"] = doc.pop("as_of")
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(doc)
+        self.assertIn("as_off", str(ctx.exception))
+
+    def test_the_wrong_day_is_never_reached(self):
+        # The reason this matters, pinned as behaviour rather than as a message:
+        # left to drop, this exits 0 having reviewed a July letter against today.
+        doc = payload(as_of="2026-07-05")
+        doc["asof"] = doc.pop("as_of")
+        with self.assertRaises(icr.InvalidInput):
+            run(doc)
+
+    def test_an_unknown_top_level_key_is_refused_even_beside_a_good_as_of(self):
+        doc = payload()
+        doc["household"] = {"language": "hokkien"}
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(doc)
+        message = str(ctx.exception)
+        self.assertIn("household", message)
+        self.assertIn("input", message)
+
+    def test_the_refusal_names_the_keys_it_would_have_accepted(self):
+        doc = payload()
+        doc["as_off"] = doc.pop("as_of")
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(doc)
+        message = str(ctx.exception)
+        self.assertIn("as_of", message)
+        self.assertIn("claims", message)
+
+    def test_the_allowed_set_is_exactly_the_contract(self):
+        # A guard on the guard, matching the one on CLAIM_KEYS above.
+        self.assertEqual(set(payload()), set(icr.DOCUMENT_KEYS))
+
+    def test_a_valid_document_still_passes(self):
+        # The guard refuses typos, not the contract it is guarding.
+        result = run(payload())
+        self.assertEqual(result["as_of"], "2026-08-04")
+
+
 class TestTheSnippetMustContainTheValue(unittest.TestCase):
     """Audit finding #14, measured 6 August 2026 in eval case G.
 

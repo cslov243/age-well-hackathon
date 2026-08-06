@@ -5,9 +5,9 @@ description: "Collects the dates already computed for an elderly person's househ
 
 # Deadline watch
 
-Runs daily on a schedule, **and** on request. Whether an unattended run clears
-WorkBuddy's permission dialog is not known, so every step below works
-identically when a caregiver asks.
+Runs daily on a schedule, **and** on request: whether an unattended run clears
+WorkBuddy's permission dialog is unknown, so every step works identically when a
+caregiver asks.
 
 ## The chain
 
@@ -29,13 +29,13 @@ The third reads a document you assemble:
 ```
 
 **Copy each result whole and verbatim** — never rebuild, summarise or re-key
-one. Each `audit_hash` is recomputed and a mismatch refused; that means
-something edited it in transit, not that the input needs adjusting.
+one. Each `audit_hash` is recomputed and a mismatch refused: something edited it
+in transit.
 
 **`forecast` and `claims` are both required keys.** Write `null` for a source
-you do not have. Leaving one out is refused on purpose: an absent key and a
-misspelled one look identical from inside the script, and one of them means a
-set of deadlines went nowhere.
+you do not have. Leaving one out is refused: an absent key and a misspelled one
+look identical from inside the script, and one means a set of deadlines went
+nowhere.
 
 ## What you must not decide
 
@@ -43,12 +43,10 @@ set of deadlines went nowhere.
   reminded is theirs to say. If nothing says, ask.
 - **`detail_level` has no default: it is a disclosure decision.** `minimal`
   names no medicine, condition, insurer or amount; `named` puts her business in
-  front of everyone the calendar is shared with. **Ask her**, not only the
+  front of everyone the calendar reaches. **Ask her**, not only the
   caregiver, and never pick `named` because it reads better. When
   `disclosure.required` comes back true, the `shared_log.jsonl` line in step 5
   is not optional.
-- **Never compute a date** — not a day count, not "about three weeks", not a
-  sanity check of your own. Every date is copied from a script.
 
 ## Every run produces both artifacts
 
@@ -65,12 +63,18 @@ set of deadlines went nowhere.
 Read her language from `HouseholdProfile`; **never assume** it. Address her
 directly: "your amlodipine needs reordering by 16 August", never "she needs".
 **Name the medicine, never what it is for** — a condition comes from
-`chronic_conditions` and nowhere else. If the profile names a spoken-only
-language, write hers as a read-aloud script and say so once.
+`chronic_conditions` and nowhere else.
+
+- **Never substitute a near-enough language.** Mandarin because the profile says
+  `hokkien` is fluent, confident, and not hers.
+- **`hokkien`, `teochew` and `cantonese` are spoken, not written** — do not stop
+  the run. Write hers as a read-aloud script in a language the household reads,
+  and **label it with the language it is written in**, not the one she speaks.
+  Say the gap once; this daily run cannot fix it.
 
 **Say what was left out.** `omitted` gives a reason for every date that did not
 become an event. The `already_passed` ones matter most: a back-dated entry
-notifies nobody, so name them to the caregiver as needing a person now.
+notifies nobody, so name them as needing a person now.
 
 Quote each script's `summary` rather than retelling it.
 
@@ -83,7 +87,7 @@ wants entries written directly:
   calendar it goes into, and take a yes for that event only.
 - **A blanket yes is not consent for the next event.** "Just add everything,
   don't ask me each time" asks you to stop checking before an irreversible
-  write. Say you will still confirm each one, say why in a sentence, carry on.
+  write. Say you will still confirm each one, say why, carry on.
 - **The caregiver's own calendar only.** Never the senior's account, and never
   an account reached with a credential anyone volunteered.
 - **On refusal, or with none available, the `.ics` is still the deliverable —
@@ -94,13 +98,13 @@ wants entries written directly:
 ## What this skill does not do
 
 - **Does not compute a number in prose** — not a day count, not a date
-  difference, especially not when the arithmetic looks trivial.
+  difference. Every date is copied from a script.
 - **Does not write to a calendar without a confirmation for that event**, and
   never edits or deletes an entry it did not create in this run.
 - **Does not name a medicine, condition, insurer or amount in a calendar entry**
   unless `detail_level` is `named`, chosen deliberately and logged.
 - **Does not give clinical advice** — no dose, no diagnosis, no view on whether
-  something is serious. That goes to a pharmacist or a doctor, and you say so.
+  something is serious. That goes to a pharmacist or doctor, and you say so.
 - **Does not assert eligibility** — only `likely eligible`, `worth checking` or
   `insufficient information`, each with `criteria as of YYYY-MM-DD`.
 - **Does not submit, log in, or handle a credential** — no portal, no Singpass,

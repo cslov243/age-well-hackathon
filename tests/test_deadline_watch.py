@@ -252,6 +252,37 @@ class BothArtifactsTests(unittest.TestCase):
     def test_it_addresses_her_directly(self):
         self.assertIn("second person", self.body.lower())
 
+    def test_it_forbids_substituting_a_near_enough_language(self):
+        # Audit finding #18. #15 claimed daily-brief and deadline-watch "both
+        # carry" this ban; grep said 1 and 0. This file had only the one
+        # spoken-only sentence letter-triage had before cycle L, and it is the
+        # skill that runs daily. Never measured, because eval cases E and F both
+        # stop before writing a senior artifact — the absence of a failure here
+        # was the absence of a test, not a working file.
+        lower = prose_only(self.body).lower()
+        self.assertIn("hokkien", lower)
+        for term in ("substitut", "near-enough", "nearest"):
+            if term in lower:
+                break
+        else:
+            self.fail("nothing in the prose forbids a near-enough language")
+
+    def test_a_read_aloud_script_is_labelled_with_the_language_on_the_page(self):
+        # The second half of #18, and the narrowing cycle K forced on
+        # letter-triage: "(Read-aloud script for Hokkien speaker)" names the
+        # language she *speaks*. A household that reads both en and zh cannot
+        # tell from that label which one it was handed.
+        lower = prose_only(self.body).lower()
+        self.assertIn("read-aloud", lower)
+        for term in ("written in", "language of the page", "label it with",
+                     "labelled as that"):
+            if term in lower:
+                break
+        else:
+            self.fail(
+                "the read-aloud fallback is not required to name the language "
+                "it is actually written in")
+
     def test_omissions_are_reported_in_prose(self):
         # A back-dated calendar entry notifies nobody, so an already-passed
         # deadline is the one that has to reach a person some other way.

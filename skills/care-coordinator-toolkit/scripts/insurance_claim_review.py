@@ -92,6 +92,10 @@ ZERO = Decimal("0.00")
 DECISIONS = ("paid", "partially_paid", "rejected", "pending", "not_stated")
 APPEALABLE = ("partially_paid", "rejected")
 AMOUNT_KEYS = ("billed", "insurer_paid", "household_paid")
+# Audit finding #19. `claims` is required so a typo there is caught; `as_of` is
+# not, and to `.get()` a misspelled key and an absent one are the same thing —
+# which resolves to today and reviews a historical letter against the wrong day.
+DOCUMENT_KEYS = ("as_of", "claims")
 CLAIM_KEYS = ("id", "insurer", "policy_reference", "incident_date",
               "submission_window_days", "insurer_decision", "decision_date",
               "appeal_window_days", "amounts", "documents_required",
@@ -606,6 +610,7 @@ def audit_hash_of(result):
 def review_claims(document):
     if not isinstance(document, dict):
         raise InvalidInput("input must be a JSON object")
+    _reject_unknown(document, DOCUMENT_KEYS, "input")
 
     as_of = _resolve_as_of(document)
     claims = _resolve_claims(document, as_of)
