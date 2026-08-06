@@ -29,6 +29,10 @@ Input:
       }]
     }
 
+Those twelve keys are the whole of a claim. Any other key is refused: dropping
+one silently makes a misspelled field indistinguishable from a field the letter
+never mentioned, and only one of those two is safe to treat as absent.
+
 What this script does NOT do, by construction:
 
   * It never decides coverage. `insurer_decision` is a closed set read off the
@@ -88,6 +92,10 @@ ZERO = Decimal("0.00")
 DECISIONS = ("paid", "partially_paid", "rejected", "pending", "not_stated")
 APPEALABLE = ("partially_paid", "rejected")
 AMOUNT_KEYS = ("billed", "insurer_paid", "household_paid")
+CLAIM_KEYS = ("id", "insurer", "policy_reference", "incident_date",
+              "submission_window_days", "insurer_decision", "decision_date",
+              "appeal_window_days", "amounts", "documents_required",
+              "documents_held", "evidence")
 STATUSES = ("ok", "due_today", "overdue", "unknown")
 FLAG = "REQUIRES_HUMAN_CONFIRMATION"
 
@@ -285,18 +293,24 @@ def _resolve_as_of(document):
     return _to_date(raw, "as_of")
 
 
+def _reject_unknown(mapping, known, where):
+    unknown = sorted(set(mapping) - set(known))
+    if unknown:
+        raise InvalidInput(
+            f"{where} has unrecognised keys: {', '.join(unknown)}. "
+            f"A misspelled key takes no effect and says nothing, which reads "
+            f"downstream as a field the letter never mentioned. "
+            f"Allowed: {', '.join(known)}"
+        )
+
+
 def _resolve_amounts(entry, gate, where):
     amounts = entry.get("amounts")
     if amounts is None:
         amounts = {}
     if not isinstance(amounts, dict):
         raise InvalidInput(f"{where}.amounts must be an object")
-    unknown = sorted(set(amounts) - set(AMOUNT_KEYS))
-    if unknown:
-        raise InvalidInput(
-            f"{where}.amounts has unrecognised keys: {', '.join(unknown)}. "
-            f"Allowed: {', '.join(AMOUNT_KEYS)}"
-        )
+    _reject_unknown(amounts, AMOUNT_KEYS, f"{where}.amounts")
     resolved = {}
     for key in AMOUNT_KEYS:
         resolved[key] = gate.take(
@@ -310,6 +324,7 @@ def _resolve_claim(entry, index, as_of):
     where = f"claims[{index}]"
     if not isinstance(entry, dict):
         raise InvalidInput(f"{where} must be an object")
+    _reject_unknown(entry, CLAIM_KEYS, where)
 
     evidence = entry.get("evidence")
     if not isinstance(evidence, dict):

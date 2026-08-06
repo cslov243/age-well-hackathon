@@ -509,6 +509,46 @@ class TestEnvelopeAndValidation(unittest.TestCase):
             run(payload(as_of="4 August 2026"))
 
 
+class TestUnrecognisedClaimKeys(unittest.TestCase):
+    """Audit finding #17. A key the script does not know is refused, never
+    dropped.
+
+    `amounts` has rejected unknown keys since it was written; the claim object
+    around it did not, so a misspelled field arrived, took no effect, and was
+    read downstream as *absent* — the one reading that carries no flag and no
+    null. Absent means the letter never said it. A typo means nobody knows.
+    """
+
+    def test_the_key_that_was_actually_dropped_is_refused(self):
+        # Verbatim from the case G run of 6 August 2026: the agent sent
+        # claim_reference next to policy_reference and the script exited 0.
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(payload([claim(claim_reference="CLM-2026-0088")]))
+        self.assertIn("claim_reference", str(ctx.exception))
+
+    def test_a_misspelled_date_field_is_refused_not_read_as_absent(self):
+        # The dangerous shape: incidence_date looks answered and is not. Left
+        # to drop, the submission deadline reads 'unknown' as though the letter
+        # had been silent about an admission it plainly states.
+        entry = claim()
+        entry["incidence_date"] = entry.pop("incident_date")
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(payload([entry]))
+        self.assertIn("incidence_date", str(ctx.exception))
+
+    def test_the_refusal_names_the_keys_it_would_have_accepted(self):
+        with self.assertRaises(icr.InvalidInput) as ctx:
+            run(payload([claim(appeal_window="30 days")]))
+        message = str(ctx.exception)
+        self.assertIn("appeal_window_days", message)
+        self.assertIn("claims[0]", message)
+
+    def test_the_allowed_set_is_exactly_the_contract(self):
+        # A guard on the guard. An allowed set that drifts from
+        # InsuranceClaimRecord starts refusing fields the contract promises.
+        self.assertEqual(set(claim()), set(icr.CLAIM_KEYS))
+
+
 class TestTheSnippetMustContainTheValue(unittest.TestCase):
     """Audit finding #14, measured 6 August 2026 in eval case G.
 

@@ -157,6 +157,13 @@ on every scheduled deadline scan.
 
 **Requires:** `claims`, even when `[]`.
 
+**A claim's fields are exactly** `id`, `insurer`, `policy_reference`,
+`incident_date`, `submission_window_days`, `insurer_decision`, `decision_date`,
+`appeal_window_days`, `amounts`, `documents_required`, `documents_held`,
+`evidence`. Any other key is refused and the error names these. Do not invent a
+field to carry something the letter said — a key the script does not know reads
+downstream as one the letter never mentioned.
+
 **Source of truth:** the letter. Every deadline, every amount and the insurer's
 name needs a **verbatim** snippet quoted under its field path in `evidence`. If
 you cannot quote it, do not supply it — the script nulls the field, lists it in

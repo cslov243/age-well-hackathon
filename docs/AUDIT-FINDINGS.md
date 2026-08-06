@@ -567,9 +567,34 @@ must come from the insurer or the clinic — rather than only what not to write.
 
 **Do not close this again without a case G run that reads her copy.**
 
+### Narrowed again, cycle M, 6 August 2026
+
+The case G re-run split the two halves cleanly, and the prose half came back
+clean. No refused value reached her copy as a sentence: the record's `deadline`
+was refused exactly as before, and this agent responded by handing
+`decision_date` and `appeal_window_days` to the script and reading 27 August off
+its output — the move the case describes as correct. The number in her copy is
+the script's.
+
+**What is left is only the reporting half, and it is now the whole finding.**
+The record carries `REQUIRES_HUMAN_CONFIRMATION` and
+`evidence_problems: [{field: "deadline", reason: "value_not_in_snippet"}]`.
+Neither artifact mentions it. Neither does the answer. The rule asks for the
+flag named *in both artifacts and in the answer*; what happens instead is that
+the flag stops mattering to the agent the moment it finds another route to the
+number — which is reasonable of it, and still wrong. The caregiver is never told
+that the letter's own deadline wording could not be verified, so nobody knows to
+check the letter against 27 August.
+
+**Next attempt: give the flag a job.** As written, the rule asks the agent to
+report a state it has already resolved to its own satisfaction. Naming what the
+line is *for* — that a human should confirm the letter's date wording, because a
+mis-read letter date moves the appeal deadline — is the version with a reason
+attached, and reasons are what the last two cycles show surviving into prose.
+
 ---
 
-## 17. `insurance_claim_review.py` ignores an unrecognised claim key — MEDIUM
+## 17. `insurance_claim_review.py` ignores an unrecognised claim key — MEDIUM — **FIXED**
 
 Found 6 August 2026 by reading what the case G agent actually passed. Its claim
 payload carried `"claim_reference": "CLM-2026-0088"` alongside
@@ -588,7 +613,18 @@ with no warning.
 **Fix:** a `_reject_unknown` over the claim's keys, matching `letter_record.py`.
 The allowed set is the `InsuranceClaimRecord` table in `docs/CONTRACTS.md`.
 
-**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+**Fixed 6 August 2026, cycle M.** `CLAIM_KEYS` names the twelve input fields of
+`InsuranceClaimRecord`, and `_reject_unknown` — now one helper, used by both the
+claim object and `amounts` — refuses anything else at the top of
+`_resolve_claim`. Four tests in `tests/test_insurance_claim_review.py`: the
+`claim_reference` key that was actually dropped, a misspelled `incidence_date`
+that would otherwise read as absent, a message that names what it would have
+accepted, and a guard pinning the allowed set to the fixture so it cannot drift
+from the contract.
+
+`evals/expected/insurance_claim_review.json` replays to the same
+`sha256:993aa8b0…` it had before, which is the point: on valid input nothing
+changed. The check only turns a silent drop into an exit 2.
 
 ---
 
@@ -625,3 +661,107 @@ token-level pins in `tests/test_deadline_watch.py`. `daily-brief`'s wording is
 the one to copy; it is the only file where this has been measured to work.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 19. The same script ignores an unrecognised **top-level** key — MEDIUM
+
+Found 6 August 2026, cycle M, immediately after fixing #17 — the level above the
+one that finding named. `review_claims` reads `as_of` and `claims` off the
+document and never asks what else is there.
+
+`claims` is required, so a typo there is caught. `as_of` is not: it resolves to
+SG today when absent, and an absent key and a misspelled one are the same thing
+to `.get()`.
+
+```
+$ python3 insurance_claim_review.py --input claim.json   # as_of renamed as_off
+INFO as_of absent; resolved once to SG today 2026-08-06
+INFO as_of 2026-08-06: reviewed 1 claim(s), 0 requiring human confirmation
+exit=0
+```
+
+Today that produces the right answer by coincidence. A historical run — the
+skill reviewing a letter against the date it arrived — silently reviews it
+against today instead, and every deadline status, `days_remaining` and `overdue`
+in the output is computed from the wrong day. The log line says `as_of absent`,
+which is true and reads as innocuous.
+
+**Reproduce:** rename `as_of` to `as_off` in any valid payload and observe exit
+0 with a today-dated review.
+
+**Fix:** `_reject_unknown(document, DOCUMENT_KEYS, "input")` at the top of
+`review_claims`, where `DOCUMENT_KEYS` is `("as_of", "claims")`. The helper
+already exists. `letter_record.py` does exactly this at its own top level.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`. It
+is two lines, and it is the same defect one level up.
+
+---
+
+## 20. An artifact carries a date no script produced — HIGH
+
+Found 6 August 2026, cycle M, by reading the family artifact of a case G run
+that had just passed both other axes. Its checklist reads:
+
+```
+  - [ ] If appealing: gather itemised bill and referral letter by 25 August 2026
+  - [ ] If appealing: submit to the insurer by 27 August 2026
+```
+
+**27 August is the script's.** 25 August is nobody's. It is two days earlier, a
+sensible buffer, invented in prose, and it appears one line above a correctly
+sourced date without anything distinguishing the two. A caregiver reading the
+checklist has no way to tell which of them survives a replay.
+
+This is not the old failure. Every previous case G defect was a number produced
+*instead of* a script's; this agent had `deadline_calendar.py`-grade output in
+hand and wrote an extra date *beside* it. The rule as written — *never compute a
+number in prose* — appears to be read as *never compute the number the script
+computes*, which leaves buffers, reminder dates, "about a week", and
+"roughly half" all feeling permitted.
+
+**Reproduce:** run case G to completion and read `out/family/` rather than the
+JSON. No unittest can see this; the artifact is prose.
+
+**Fix, provisionally.** A rule in `skills/letter-triage/SKILL.md` saying that a
+date offered as a working target is still a date, and that a lead time is
+something the caregiver chooses rather than something the artifact asserts —
+*"if you want a reminder before the deadline, say so and it goes in the
+calendar file"*. Worth checking whether `daily-brief` and `deadline-watch` have
+the same hole; neither has ever been measured on it.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 21. Her copy attributes a computed figure to the letter — MEDIUM
+
+Same run, same read-through. The senior artifact lists the three amounts and
+then says:
+
+```
+All of this is in the letter.
+They are not my numbers — they are what the letter from Great Eastern says.
+```
+
+The letter states SGD 1,220.00 and SGD 860.00. **It does not state SGD 360.00**
+— that is the script's `outstanding`, the whole reason `insurance_claim_review.py`
+exists. The sentence is reassuring, well-meant, addressed to her directly as
+required, and false in the direction of extra confidence.
+
+It also inverts the provenance the design actually offers. "The letter says it"
+cannot be checked by anyone who cannot read the letter — which is the person
+being addressed. "This was worked out from the two amounts the letter prints,
+and the family can check it" is both true and checkable.
+
+**Reproduce:** case G, read `out/senior/`.
+
+**Fix:** the senior artifact may say where a figure came from, and the two
+sources are *printed on the page* and *worked out from figures on the page*. It
+may not merge them. Related to #16 in kind — both are the artifact making a
+claim about evidence rather than about money — and separate in cause: #16 drops
+a flag, this asserts a provenance nobody asked it for.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+

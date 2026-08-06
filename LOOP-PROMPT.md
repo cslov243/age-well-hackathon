@@ -147,40 +147,45 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle M: the unknown claim key, then the file nobody measured
+## Start here — cycle N: the number that was never computed
 
-**Cycle L closed #15 and reopened #16.** Both fixes went into
-`skills/letter-triage/SKILL.md` without touching a script; the case G re-run
-confirmed the first and reversed the second. The word budget went 1000 → 991 in
-the same cycle: the file gained three rules and still shrank, once the budget
-forced the question of what the older prose was earning.
+**Cycle M fixed #17** and opened three findings by reading what the case G run
+actually wrote. The script change was small — `CLAIM_KEYS`, one
+`_reject_unknown`, four tests — and `evals/expected/insurance_claim_review.json`
+replays to the same hash it had before, which is the point: on valid input
+nothing changed.
 
-- **#16 — a refused value still reaches her copy, as a sentence.** The new rule
-  is obeyed as a *field state* — the family CSV flags the row, the disclosure
-  log carries `flags` — and broken as *prose*: her copy says "if we do the math,
-  it would be 360 dollars". Read the reopened entry. The next attempt should say
-  what to write instead of the number, not only that the number is banned.
-  **Do not close it again without a case G run that reads her copy.**
+**That run was the best case G has had — tool pass, answer pass, all three traps
+cleared — and it still failed axis 3.** Read the cycle M block in
+`evals/RESULTS.md` before picking anything.
 
-- **#17 — `insurance_claim_review.py` ignores an unrecognised claim key.** One
-  `_reject_unknown` over the claim's keys, matching `letter_record.py`. Code,
-  small, and the only open finding that can silently discard a field. Take it
-  first — it is the last one that produces a wrong number rather than a badly
-  reported one.
-- **#18 — `deadline-watch` has neither half of the language rule.** Opened in
-  cycle L by checking a claim #15 made rather than taking it: that finding says
-  `daily-brief` and `deadline-watch` both carry the substitution ban, and only
-  `daily-brief` does. `deadline-watch` is the file `letter-triage` was, and it
-  runs daily. It has never failed because **no eval case has ever reached its
-  senior copy** — E and F both correctly stop before writing. Copy
-  `daily-brief`'s two bullets, which are the only ones measured to work.
+- **#20 — an artifact carries a date no script produced.** The family checklist
+  says *"gather ... by 25 August 2026"*, two days before a correctly sourced
+  27 August, invented in prose as a buffer. **Take this first.** Every earlier
+  failure was a number written *instead of* a script's; this one was written
+  *beside* it, which means the rule is being read as "never compute the number
+  the script computes" and lead times, buffers and "about a week" all still feel
+  allowed. Check `daily-brief` and `deadline-watch` for the same hole.
+- **#21 — her copy tells her a computed figure was printed on the page.** *"They
+  are not my numbers — they are what the letter says."* The letter states 1,220
+  and 860, never 360. Small, prose-only, and it is a provenance claim made to
+  the one person who cannot check it.
+- **#16 is down to its reporting half and nothing else.** No refused value
+  reached her copy this time. But the record is flagged, and neither artifact
+  nor the answer says so. Give the flag a job — *why* a person should confirm
+  the letter's date wording — rather than restating that it must be named.
+- **#19 — the same unknown-key hole one level up.** `as_of` misspelled at the
+  top level of `insurance_claim_review.py` is silently today. Two lines, the
+  helper already exists, and it is the last silent-wrong-number path on disk.
+- **#18 — `deadline-watch` has neither half of the language rule**, and no eval
+  case has ever reached its senior copy. A file that cannot fail an evaluation
+  is not passing it. Extend case E with `horizon_days` and `detail_level`
+  supplied up front, or write the case that does.
 - **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
   canonical: `household/profile.json` or `out/household_profile.json`.
 
-**#18 is worth a case as much as a fix.** A file that cannot fail an evaluation
-is not passing it. Either extend case E with `horizon_days` and `detail_level`
-supplied up front so it reaches `out/senior/`, or write the case that does.
+**Then re-run case G, and read the artifacts rather than the JSON.** Three of
+the last four defects in this case were invisible in the output files and plain
+in the prose.
 
-**Then re-run case G.** Cycle L's run is in `evals/RESULTS.md`.
-
-Every script on disk is frozen except for #17's one check.
+Every script on disk is frozen except for #19's one check.

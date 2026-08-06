@@ -159,6 +159,11 @@ from it. Added 4 August 2026.
 | `documents_required` / `documents_held` | list[string] | — |
 | `evidence` | dict[field path → snippet] | — |
 
+**The table is the whole of the input, and is enforced as such** since 6 August
+2026 (audit finding #17): a claim carrying any other key is refused, rather than
+processed with that key dropped. A misspelled field would otherwise read as one
+the letter never mentioned, which is the one reading that carries no flag.
+
 `insurer_decision` is exactly `paid`, `partially_paid`, `rejected`, `pending`,
 `not_stated`. An unrecognised value is **refused**, never mapped to the nearest
 one. Deadline status is `ok`, `due_today`, `overdue`, `unknown`.

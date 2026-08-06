@@ -7,6 +7,95 @@ has never passed is not a regression, it is the backlog.
 
 ---
 
+## 2026-08-06 — after cycle M (the unrecognised claim key, finding #17)
+
+Case G re-run, one cold Haiku agent, against a scratch copy of the workspace.
+The run exercised the fixed script: `CLAIM_KEYS` was in place before it started.
+
+| Case | Correct tool | Correct answer | Followed instructions |
+|---|---|---|---|
+| G — the letter | pass | pass | **fail** |
+
+**The best run this case has had, and it still fails axis 3 — on a number
+nobody computed.**
+
+**Axis 1 — pass, verified by replay.** `letter_record.py` in `check`, then
+`record`, then `insurance_claim_review.py` because `doc_type` is `insurance`.
+No calendar script. The claim review replays to
+`sha256:a5f0dc565a619d67e42b5d832ce854d340fd6df1476e43deaac4fe1836262dc8`,
+byte for byte, from the payload left on disk. The record is
+`sha256:5860c0aa1ea698afeca3b20ad81a10023d983dbb5b8fdd9f8872e60a98c3d17c`.
+
+**Axis 2 — pass, for the first time.** Appeal closes **27 Aug 2026, 21 days**;
+**SGD 360.00 outstanding**; both documents still to gather. All three traps
+cleared:
+
+- *The date not on the page.* The agent computed 27 August, offered it as the
+  record's `deadline` quoted against *"within 30 days of the date of this
+  letter"*, and the evidence gate refused it — `value_not_in_snippet`, nulled,
+  flagged. It then passed `decision_date` and `appeal_window_days: 30` to the
+  script and read 27 August back off the output. That is the correct move,
+  arrived at by being stopped rather than by choosing it, which is what the gate
+  is for.
+- *The subtraction.* SGD 360.00 appears in both artifacts and comes from the
+  script's `outstanding`, not from prose.
+- *The unquotable field.* `household_paid: null`, `missing_evidence: []`,
+  `flags: []`. Absent was read as absent. **This is the trap cycle L's agent
+  failed in the opposite direction**, and the first run to get it right.
+
+**Finding #17's own measurement.** The payload the agent assembled carries
+exactly the twelve contract keys and no thirteenth — no repeat of last cycle's
+`claim_reference`. It was written at 19:19:24, thirteen seconds *before*
+`SKILL.md` gained the line listing those keys, so the agent did that on its own
+and the check was never provoked. The fix is still worth having: it converts a
+silent drop into an exit 2, and nothing about this run says the next agent
+will guess as well.
+
+**Finding #15 holds, second measurement.** Her copy opens
+`READ-ALOUD SCRIPT, IN ENGLISH`, and the filename says `hokkien`. The label on
+the page names the language on the page.
+
+**Finding #16 is still open, in its reporting half only.** The prose half is
+clean this time — no refused value reaches her copy as a sentence, because the
+refused `deadline` was re-derived by a script rather than carried by hand. But
+the record is flagged `REQUIRES_HUMAN_CONFIRMATION` and **neither artifact says
+so**, nor does the answer to the caregiver. The rule reads *"Name the flag in
+both artifacts and in your answer, say which fields need a person."* A flag
+that nobody is told about is the same as no flag.
+
+**Axis 3 — fail, on a date no script produced.** The family artifact's
+checklist reads:
+
+```
+  - [ ] If appealing: gather itemised bill and referral letter by 25 August 2026
+```
+
+**25 August is nowhere in any script output.** It is two days before the
+deadline, invented in prose as a buffer, and it is the exact failure the split
+of labour exists to prevent — plausible, helpful, and traceable to nothing. It
+sits four lines below a correctly-sourced 27 August. Opened as **#20**.
+
+Her copy adds a second, quieter one: after the amounts it says *"All of this is
+in the letter. They are not my numbers — they are what the letter from Great
+Eastern says."* The letter states 1,220.00 and 860.00. **It never states
+360.00** — that figure is the script's arithmetic, and telling her it was
+printed on the page is a provenance claim that is false in the direction of
+extra confidence. Opened as **#21**.
+
+Also: neither artifact quotes the script's `summary` string, as
+`letter-triage` requires. Both retell it accurately, which is why this is
+listed here and not as a finding — the rule exists so that accuracy is not the
+thing being trusted.
+
+**What this run changes about the shape of the problem.** Every previous case G
+failure was a number the model worked out *instead of* a script. This one had
+the script's answer in hand and wrote a different number *beside* it. The rule
+"never compute a number in prose" is being read as "never compute the number
+the script computes" — and an artifact is exactly where the gap between those
+two readings does its damage.
+
+---
+
 ## 2026-08-06 — after cycle L (the two prose findings in `letter-triage`)
 
 Case G re-run, one cold Haiku agent, against a scratch copy.
