@@ -49,7 +49,12 @@ CHAIN = ("medication_runout.py", "clinic_finder.py")
 # wrote her brief in Mandarin when the profile said hokkien, and labelled her
 # medicines with conditions the profile does not record. Both rules below are
 # now stated explicitly. A budget is not worth more than that.
-WORD_BUDGET = 830
+#
+# Re-pointed again the same day, 830 -> 846, for a product decision: a spoken-
+# only language no longer stops the run. Blocking was the honest reading of dual
+# output and it left a caregiver who asked for a brief with nothing at all, so
+# the rule now says what to produce instead. See docs/DECISIONS.md.
+WORD_BUDGET = 846
 
 
 def body():

@@ -149,6 +149,34 @@ actually hit twice was documentation drifting away from behaviour.*
 
 ---
 
+## A spoken-only language does not stop the run — decided 6 August 2026
+
+`senior.language` may be `hokkien`, `teochew` or `cantonese`. These are spoken,
+not written, and no production text-to-speech ships for them. The first version
+of `daily-brief` treated that as unresolvable and stopped the whole run, which
+is the honest reading of *dual output on every skill*: one artifact without the
+other is unfinished.
+
+Measured the same day, eval case D: the agent read the profile, named the gap,
+asked which language to use instead, and wrote nothing. Correct by the rule, and
+a caregiver who asked for a brief got no figures at all — every day, forever,
+because nobody in this project can add Hokkien TTS.
+
+**Decided: produce the run.** Her copy becomes a **read-aloud script for whoever
+is with her** — short spoken sentences, second person, in a language the
+household reads — labelled as that at the top. The gap is stated once in the
+family copy and not raised again daily.
+
+What did **not** change: no near-enough substitution. Mandarin because the
+profile says `hokkien` is still the failure this product exists to prevent, and
+it is still fluent, confident, and not her language. The difference is that the
+answer is now a person reading to her rather than a run that produces nothing.
+
+`skills/daily-brief/SKILL.md` and `skills/deadline-watch/SKILL.md` both carry
+it. `evals/RESULTS.md` records the open question this closes.
+
+---
+
 ## Scope frozen for 9 August
 
 **Decided:** insurance claim review and expense splitting are **done**. 64 and 46

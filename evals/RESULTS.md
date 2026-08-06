@@ -88,10 +88,12 @@ sentence inside per-script prose into a headed bulleted block. The two new rules
 went from ignored to obeyed by being written the same way. Placement, not
 wording, and not model capability.
 
-**Open design question this raised.** Blocking the whole run on an unanswerable
-language is defensible — dual output means one artifact without the other is an
-unfinished run — but a caregiver who asked for a brief got no figures at all.
-Decide whether the family copy should still be written while her copy waits.
+**Open design question this raised — closed 6 August 2026.** Blocking the whole
+run on an unanswerable language is defensible, but a caregiver who asked for a
+brief got no figures at all, and no one on this project can add Hokkien TTS, so
+the block was permanent. Her copy is now written as a read-aloud script for
+whoever is with her, the gap is stated once, and the run completes. The ban on
+substituting a near-enough language is unchanged. See `docs/DECISIONS.md`.
 
 **Harness defect fixed:** the first run wrote four files into `evals/fixtures/`,
 the committed inputs. `CASES.md` step 2 now copies the workspace to scratch.

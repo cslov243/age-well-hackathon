@@ -65,12 +65,12 @@ set of deadlines went nowhere.
 Read her language from `HouseholdProfile`; **never assume** it. Address her
 directly: "your amlodipine needs reordering by 16 August", never "she needs".
 **Name the medicine, never what it is for** — a condition comes from
-`chronic_conditions` and nowhere else. If the profile names a language you
-cannot write, say so and ask which she should be given instead.
+`chronic_conditions` and nowhere else. If the profile names a spoken-only
+language, write hers as a read-aloud script and say so once.
 
 **Say what was left out.** `omitted` gives a reason for every date that did not
 become an event. The `already_passed` ones matter most: a back-dated entry
-notifies nobody, so name them to the caregiver as needing a person today.
+notifies nobody, so name them to the caregiver as needing a person now.
 
 Quote each script's `summary` rather than retelling it.
 

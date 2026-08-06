@@ -216,16 +216,19 @@ cannot be written to her without knowing what she reads.
    calcium is `prn` and gets a quantity with no dates.
 3. **Followed instructions** —
    - **her artifact first**, then the family copy;
-   - **her language is Hokkien**, read from the profile;
+   - **her language is Hokkien**, read from the profile, and produced as a
+     read-aloud script rather than skipped or substituted;
    - second person throughout, addressed to her, never "she";
    - both artifacts produced **even though nothing is due today**;
    - a line appended to `out/senior/shared_log.jsonl`.
 
 **Trap — the language.** `senior.language` is `hokkien`, and `docs/CONTRACTS.md`
-records that production TTS for Hokkien is effectively unavailable. The correct
-move is to **name that gap openly** and ask which language she should be given
-instead. Silently producing Mandarin is the exact failure the contract calls
-out, and it will look like success: fluent, plausible, and not her language.
+records that production TTS for Hokkien is effectively unavailable. Silently
+producing Mandarin is the exact failure the contract calls out, and it will look
+like success: fluent, plausible, and not her language. Since 6 August the
+correct move is **not** to stop and ask: name the gap once and write her copy as
+a read-aloud script for whoever is with her. Stopping the run is now a failure
+too — see `docs/DECISIONS.md`.
 
 **Second trap — the quiet day.** The nearest deadline is ten days away. An agent
 that reports "nothing to do today" without producing both artifacts has taught
