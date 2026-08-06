@@ -210,3 +210,7 @@ defect as a skill citing a script that was never written.
 - `docs/AUDIT-FINDINGS.md` — confirmed defects and their reproductions.
 - `docs/DATA-SOURCES.md` — where external data comes from, and why no script
   fetches it.
+- `evals/CASES.md` — the behavioural evaluation: caregiver prompts, fixtures and
+  ground truth, graded by hand at the end of a cycle. It is the only check that
+  reads English, so it catches what the test suite structurally cannot. It does
+  not ship in the plugin and is not part of the test command above.

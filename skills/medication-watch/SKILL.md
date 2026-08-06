@@ -1,6 +1,6 @@
 ---
 name: medication-watch
-description: "Checks how many days of each medication remain and prepares a pharmacy cart draft for the ones running out. Use on the daily scheduled run, and whenever a caregiver or the senior asks how much medicine is left, when a refill is due, or what needs buying. Never orders, pays for, or advises on any medicine."
+description: "Used on daily run. Runs a sequence of three scripts (purchase terms, medication runout, and pharmacy cart) to check remaining medication supplies, determine purchase terms, and draft a pharmacy cart without performing any prose arithmetic or ordering items. examples: checking remaining medication supply, finding when a refill is due, generating a pharmacy cart draft"
 ---
 
 # Medication watch

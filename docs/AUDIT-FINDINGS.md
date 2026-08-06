@@ -17,13 +17,16 @@ marked `Rewritten` was written fresh here and tested, not repaired.
 | 2 | `medication_runout.py` rounds half-days to even, and upward | Rewritten |
 | 3 | `deadline_window.py` — `this_week` status is wrong | Open |
 | 4 | No escalation cooldown exists anywhere | Open |
-| 5 | Prose citing a script that does not exist — now `tests/test_skill_manifest.py`, and the same check in `tests/test_readme.py` and `tests/test_backlog.py` | Guarded |
+| 5 | Prose citing a script that does not exist — now `tests/test_skill_manifest.py` and the same check in `tests/test_readme.py` | Guarded |
 | 6 | No letter-record deduplication | Open |
 | 7 | `household_profile.py` clobbers on write | Open |
-| 8 | No behavioural evaluation of any skill exists | Dropped |
+| 8 | No behavioural evaluation of any skill exists | Guarded — `evals/` |
+| 9 | `SKILL.md` documents `split_rule` as a string; the script needs an object | Open |
+| 10 | Reporting instructions are ignored while refusals are obeyed | Open |
 
-`Open` items are on the backlog in `LOOP-PROMPT.md`. #8 was decided rather than
-deferred — the reasoning and the Demo Day answer are in `docs/DECISIONS.md`.
+`Open` items are on the backlog in `LOOP-PROMPT.md`. #8 was dropped as
+unbuildable offline and reopened on 6 August in the form that is buildable:
+cases run by hand in Claude Code, never in the unittest suite. See `evals/`.
 
 ---
 
@@ -207,3 +210,62 @@ one per failure mode already seen:
 
 Not fixed in cycle 6, which was scoped to the `SKILL.md` defects themselves.
 Belongs on the backlog as its own item, after packaging.
+
+---
+
+## 9. `SKILL.md` documents `split_rule` as a string; the script requires an object
+
+Found 6 August 2026, by writing an input straight from the skill file.
+
+`SKILL.md` says:
+
+> **Requires:** `members`, `expenses`, `split_rule` — one of `even`, `weighted`
+> (weights sum to 1) or `ratio`
+
+which reads as `"split_rule": "even"`. Reproduction:
+
+```
+$ python3 scripts/expense_split.py --input split_input.json
+ERROR expense_split split_rule is required and must be an object
+EXIT=2
+```
+
+The script requires `{"mode": "even"}`. `expense_split.py`'s own docstring shows
+the object form; `SKILL.md` does not, and `SKILL.md` is what a runtime reads.
+
+Compounding: **only `medication_runout.py` has a worked example.** The other five
+scripts have none, so five of six documented contracts have no correct-shaped
+input anywhere in the file. `WorkedExampleTests` requires *at least one* example,
+which is why 539 tests pass over a contract that does not run.
+
+A behavioural eval masked it too — the agent in case B got the shape right by
+reading the `.py` source, which a WorkBuddy runtime would not do.
+
+Fix: correct the prose, add a worked example per script, and require one per
+script rather than one per file.
+
+## 10. Reporting instructions are ignored; refusals are obeyed
+
+Found 6 August 2026 by the first behavioural evaluation run — `evals/RESULTS.md`.
+
+Three cold agents, three cases. Every one produced correct figures and then
+reported them in a way the skill file forbids:
+
+  * case A paraphrased `forecast[].summary` instead of quoting it, dropping the
+    `count_basis` clause and the remainder;
+  * case B named who absorbed the residual cent without quoting `residual_rule`;
+  * case C hedged an eligibility claim — "74 and a 3-room flat, which might put
+    her in scope" — with no dated snapshot and no `criteria as of` line.
+
+The same three agents obeyed every refusal in the file: no dose advice, no
+credential handling, no arithmetic in prose, no invented figure.
+
+The difference is placement, not wording. Refusals sit in a bulleted section
+headed *What this skill does not do*. The reporting rules are single sentences
+inside per-script prose. What is stated as a list of prohibitions carries; what
+is stated as a sentence about presentation does not.
+
+Fix candidate: give reporting rules the same shape as refusals — a short,
+headed, bulleted block per script, phrased as an instruction rather than as an
+explanation. Do not fix by adding a test; no test reads English, which is how
+this survived 539 of them.

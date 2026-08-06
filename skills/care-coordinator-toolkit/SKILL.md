@@ -1,6 +1,6 @@
 ---
 name: care-coordinator-toolkit
-description: "Runs deterministic scripts that produce every number in a care task: days of medication supply left, insurance claim deadlines and amounts outstanding, the split of a shared care cost between family members, the distance to the nearest clinics, and a pharmacy cart draft. Use when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly."
+description: "Runs deterministic Python scripts to calculate and produce exact numbers, dates, distances, and drafts for care tasks, ensuring all data is computed programmatically rather than in prose. examples: calculating medication supply days, reviewing insurer claims, splitting care costs, finding clinic distances, determining medication purchase terms, generating a pharmacy cart draft"
 ---
 
 # Care coordinator toolkit

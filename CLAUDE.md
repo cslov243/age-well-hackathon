@@ -17,6 +17,7 @@ and no network.
 | `docs/AUDIT-FINDINGS.md` | Any script in `skills/care-coordinator-toolkit/scripts/`. |
 | `docs/DATA-SOURCES.md` | Any external data. **Read before writing networking code** — skill scripts make none. |
 | `docs/DECISIONS.md` | Before relitigating scope or preparing a Demo Day answer. |
+| `evals/CASES.md` | Finishing any cycle that touched a skill, the agent or a script. Runs in Claude Code by hand, never in the test suite. |
 
 ## The core loop
 

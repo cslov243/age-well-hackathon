@@ -24,7 +24,12 @@ unit first. **Do not batch two backlog items into one cycle.**
    that goes the wrong way silently, values accepted but never used, state that
    can be written twice, anything that fails quietly. Report what you found,
    including if it was nothing.
-7. **Report:** what changed, what you assumed, what you did not do, what this
+7. **Run the behavioural evaluation** — `evals/CASES.md`. Spawn one cold cheap
+   subagent per case, grade the three axes, append a dated block to
+   `evals/RESULTS.md`. This is the only check that reads English, and every
+   defect it has found so far passed the whole unittest suite. Skip it only if
+   the cycle touched no skill file, no agent file and no script.
+8. **Report:** what changed, what you assumed, what you did not do, what this
    makes possible. Then stop and wait.
 
 ## Standing rules

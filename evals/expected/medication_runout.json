@@ -1,0 +1,76 @@
+{
+  "tool_run_id": "9b91bc77-868d-4bbc-b659-79f97f9b5680",
+  "issued_at": "2026-08-06T12:11:14+08:00",
+  "as_of": "2026-08-06",
+  "default_lead_time_days": 5,
+  "medications_counted": 3,
+  "medications_digest": "sha256:19db2c6b520d70bb2f4bd3d6862a54844ccf4db2c811792535ff66f9185bea6a",
+  "conventions": {
+    "supply_rounding": "days_of_supply = floor(quantity_on_hand / units_per_day), computed on exact fractions; supply is never rounded up. leftover_units is what remains beyond the last full day and buys no further full day",
+    "order_by": "order_by = runs_out_on minus lead_time_days, where runs_out_on is the first day the supply on hand does not fully cover",
+    "days_remaining": "full_dose_days_remaining counts days from as_of (or from coverage_starts_on, whichever is later) through last_full_dose_day inclusive, and is 0 once the supply is exhausted",
+    "count_basis": {
+      "doses_on_count_day_taken": "quantity_on_hand was counted after that day's doses were taken, so coverage_starts_on is the day after counted_on",
+      "doses_on_count_day_pending": "quantity_on_hand was counted before that day's doses were taken, so coverage_starts_on is counted_on itself"
+    },
+    "statuses": [
+      "ok",
+      "order_now",
+      "order_overdue",
+      "no_supply"
+    ]
+  },
+  "forecast": [
+    {
+      "id": "amlodipine-5",
+      "name": "Amlodipine 5mg",
+      "form": "tablet",
+      "quantity_on_hand": "23",
+      "counted_on": "2026-08-06",
+      "count_basis": "doses_on_count_day_pending",
+      "units_per_day": "1.5",
+      "coverage_starts_on": "2026-08-06",
+      "days_of_supply": 15,
+      "leftover_units": "0.5",
+      "last_full_dose_day": "2026-08-20",
+      "runs_out_on": "2026-08-21",
+      "full_dose_days_remaining": 15,
+      "lead_time_days": 5,
+      "lead_time_source": "default",
+      "order_by": "2026-08-16",
+      "status": "ok",
+      "summary": "Amlodipine 5mg: 23 tablets counted on 6 Aug 2026, on the basis that that day's doses had not yet been taken. At 1.5 tablets a day, that is 15 days of doses in full: the last full day is 20 Aug 2026, and 21 Aug 2026 is the first day not covered. 0.5 tablets left over beyond the last full day. Order by 16 Aug 2026, allowing 5 days lead time."
+    },
+    {
+      "id": "metformin-500",
+      "name": "Metformin 500mg",
+      "form": "tablet",
+      "quantity_on_hand": "31",
+      "counted_on": "2026-08-06",
+      "count_basis": "doses_on_count_day_taken",
+      "units_per_day": "2",
+      "coverage_starts_on": "2026-08-07",
+      "days_of_supply": 15,
+      "leftover_units": "1",
+      "last_full_dose_day": "2026-08-21",
+      "runs_out_on": "2026-08-22",
+      "full_dose_days_remaining": 15,
+      "lead_time_days": 5,
+      "lead_time_source": "default",
+      "order_by": "2026-08-17",
+      "status": "ok",
+      "summary": "Metformin 500mg: 31 tablets counted on 6 Aug 2026, on the basis that that day's doses had already been taken. At 2 tablets a day, that is 15 days of doses in full: the last full day is 21 Aug 2026, and 22 Aug 2026 is the first day not covered. 1 tablet left over beyond the last full day. Order by 17 Aug 2026, allowing 5 days lead time."
+    }
+  ],
+  "not_forecast": [
+    {
+      "id": "calcium-d",
+      "name": "Calcium with vitamin D",
+      "form": "tablet",
+      "quantity_on_hand": "40",
+      "reason": "prn_no_fixed_rate",
+      "summary": "Calcium with vitamin D: 40 tablets on hand, taken as needed. With no fixed daily rate there is no run-out date to calculate, so none is forecast."
+    }
+  ],
+  "audit_hash": "sha256:644d0df130172f3b8f31a1ae4d260c7dcb6211e6d7551a406a2ad2b8fcb080a3"
+}

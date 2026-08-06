@@ -1,0 +1,39 @@
+{
+  "as_of": "2026-08-06",
+  "default_lead_time_days": 5,
+  "medications": [
+    {
+      "id": "amlodipine-5",
+      "name": "Amlodipine 5mg",
+      "form": "tablet",
+      "quantity_on_hand": "23",
+      "count_basis": "doses_on_count_day_pending",
+      "schedule": {
+        "mode": "fixed_daily",
+        "units_per_dose": "0.5",
+        "doses_per_day": 3
+      }
+    },
+    {
+      "id": "calcium-d",
+      "name": "Calcium with vitamin D",
+      "form": "tablet",
+      "quantity_on_hand": "40",
+      "schedule": {
+        "mode": "prn"
+      }
+    },
+    {
+      "id": "metformin-500",
+      "name": "Metformin 500mg",
+      "form": "tablet",
+      "quantity_on_hand": "31",
+      "count_basis": "doses_on_count_day_taken",
+      "schedule": {
+        "mode": "fixed_daily",
+        "units_per_dose": "1",
+        "doses_per_day": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "members": [
+    {
+      "id": "wei",
+      "name": "Wei"
+    },
+    {
+      "id": "mei",
+      "name": "Mei"
+    },
+    {
+      "id": "jun",
+      "name": "Jun"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "physio-aug",
+      "description": "Physiotherapy, August",
+      "amount": "1000.00",
+      "currency": "SGD",
+      "paid_by": "wei"
+    }
+  ],
+  "split_rule": {
+    "mode": "even"
+  }
+}

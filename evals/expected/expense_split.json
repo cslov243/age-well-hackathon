@@ -1,0 +1,48 @@
+{
+  "tool_run_id": "7267ffd4-c2c6-4547-9974-633f1f1ed925",
+  "issued_at": "2026-08-06T12:11:14+08:00",
+  "as_of": "2026-08-06",
+  "currency": "SGD",
+  "total": "1000.00",
+  "expenses_counted": 1,
+  "expenses_digest": "sha256:0b43436a53ff2340366e46bc67c299aa5ef257afca0ec0a6352d957321c0853a",
+  "split_rule": {
+    "mode": "even",
+    "weights_as_given": null,
+    "weights_applied": {
+      "wei": "1/3",
+      "mei": "1/3",
+      "jun": "1/3"
+    },
+    "normalised": true
+  },
+  "residual_rule": "residual cents assigned one each, largest applied weight first, ties broken by member id ascending",
+  "residual_cents": 1,
+  "splits": [
+    {
+      "member_id": "wei",
+      "weight_applied": "1/3",
+      "share": "333.33",
+      "paid": "1000.00",
+      "balance": "666.67",
+      "residual_cents_absorbed": 0
+    },
+    {
+      "member_id": "mei",
+      "weight_applied": "1/3",
+      "share": "333.33",
+      "paid": "0.00",
+      "balance": "-333.33",
+      "residual_cents_absorbed": 0
+    },
+    {
+      "member_id": "jun",
+      "weight_applied": "1/3",
+      "share": "333.34",
+      "paid": "0.00",
+      "balance": "-333.34",
+      "residual_cents_absorbed": 1
+    }
+  ],
+  "audit_hash": "sha256:f8737aad97fbf7d29672d08b163ecf63d72fbe13e7865c15fc4bbfbb474e2c6b"
+}
