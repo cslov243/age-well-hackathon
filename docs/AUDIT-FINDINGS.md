@@ -699,7 +699,7 @@ is two lines, and it is the same defect one level up.
 
 ---
 
-## 20. An artifact carries a date no script produced — HIGH
+## 20. An artifact carries a date no script produced — HIGH — **FIXED**
 
 Found 6 August 2026, cycle M, by reading the family artifact of a case G run
 that had just passed both other axes. Its checklist reads:
@@ -731,11 +731,34 @@ something the caregiver chooses rather than something the artifact asserts —
 calendar file"*. Worth checking whether `daily-brief` and `deadline-watch` have
 the same hole; neither has ever been measured on it.
 
-**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+### Fixed, cycle N, 6 August 2026
+
+The rule went into `agents/care-navigator.md`, not only into the skill, because
+every skill inherits the normative copy and only one of the four had ever been
+measured on this. It closes the narrow reading directly: *"A number you add
+beside a script's is still a number you invented. The rule is not do not
+recompute the figure the script computed — it is that every figure and date in
+an artifact is one a script produced."* It then names the shapes the invention
+arrives in, since none of them feel like arithmetic: a buffer, a lead time, a
+day to start gathering by, "about a week", "roughly half". `letter-triage`
+carries the operational half and the alternative: *"Say she should begin early;
+do not name a day."*
+
+Two tests pin it — one that the body forbids a number added *beside* a
+script's, one that it names at least one shape that is not a recomputation.
+Both are semantic-cue tests, not wording tests, per the standing rule about
+prose files.
+
+**Measured clean on the cycle N case G run.** No date appears in either artifact
+that a script did not produce; the checklist now says "collect the itemised bill
+and referral letter" with no day attached. `daily-brief`, `medication-watch` and
+`deadline-watch` inherit the rule through the agent file, but **none of the
+three has been measured on it** — that remains true and is why this is closed on
+one measurement rather than on confidence.
 
 ---
 
-## 21. Her copy attributes a computed figure to the letter — MEDIUM
+## 21. Her copy attributes a computed figure to the letter — MEDIUM — **HALF FIXED, STILL OPEN**
 
 Same run, same read-through. The senior artifact lists the three amounts and
 then says:
@@ -763,5 +786,115 @@ may not merge them. Related to #16 in kind — both are the artifact making a
 claim about evidence rather than about money — and separate in cause: #16 drops
 a flag, this asserts a provenance nobody asked it for.
 
+### Half fixed, cycle N, 6 August 2026
+
+The ban landed and the offer did not, and the failure changed address.
+
+Her copy no longer attributes anything to the letter: *"They are not my numbers
+— they are what the letter from Great Eastern says"* is gone, and SGD 360.00 is
+stated with no provenance claim. But the rule gives two honest answers and her
+copy used **neither**. It never says the balance was worked out from the two
+amounts printed on the page, which is the one version she could check herself —
+so she is no longer told something false, and is still not told the true thing.
+
+The false blanket meanwhile reappeared in the **family** artifact:
+
+```
+All figures sourced from letter dated 28 July 2026:
+  - Billed amount: "Total amount billed          SGD 1,220.00"
+  - Insurer payment: "Amount payable by us         SGD   860.00"
+  - Appeal window: "If you wish to appeal ... within 30 days ..."
+```
+
+The three quotations are right. The sentence above them is false, because the
+balance is neither in the list nor sourced from the letter. The rule was written
+into the section of `SKILL.md` about her copy, and it reached her copy and
+nothing else.
+
+**Next attempt:** state it where it binds both artifacts, and make the positive
+form the default rather than the permission — a figure a script computed is
+*introduced* as worked out from the page, not merely *not* attributed to it.
+
+**Still open.**
+
+
+---
+
+## 22. An artifact asserts the negation of a flag the record carries — HIGH
+
+Found 6 August 2026, cycle N, reading the family artifact against the record
+that produced it. The artifact ends:
+
+```
+**Status:** No human confirmation required — all key figures are quotable
+from the letter.
+```
+
+`extracted/letter-*.json` from the same run carries:
+
+```
+"flags": ["REQUIRES_HUMAN_CONFIRMATION"],
+"missing_evidence": ["deadline"],
+"evidence_problems": [{"field": "deadline", "reason": "value_not_in_snippet"}]
+```
+
+The agent's answer to the caregiver says it too: *"all the figures in this
+letter are quotable and certain. Nothing needs human confirmation on the
+numbers themselves."*
+
+**This is not #16.** #16 is a flag that never reaches an artifact — an omission,
+and a caregiver reading around it still has the record. This artifact tells the
+caregiver the opposite of what the record says, and does it in the one place a
+reader looks to decide whether to check anything. An omitted flag costs a
+second look; a negated one buys false confidence and is signed.
+
+**The mechanism is now visible, and it is the reason this needs its own fix.**
+The run produced **two** flag sets: `letter_record.py` flagged the record, and
+`insurance_claim_review.py` returned `flags: []` — correctly, because
+`household_paid` was absent rather than unquotable. The agent read the second
+and generalised it over the whole run. Every skill that chains two scripts has
+this shape, and nothing anywhere says a clean flag list from one script is not a
+clean run.
+
+**Reproduce:** case G to completion; diff the `flags` array of every JSON the
+run wrote against the "status" line of `out/family/`.
+
+**Fix, provisionally.** Two instructions, because they are different: report
+every flag from every script the run invoked, naming which script raised it;
+and **never state that no confirmation is needed** — the absence of a flag is
+not a finding, and an artifact that says nothing about confirmation is correct
+where one that certifies its absence is not. `agents/care-navigator.md`, since
+this is not specific to letters.
+
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
 
+---
+
+## 23. The run's inputs and one output live outside the workspace — MEDIUM
+
+Same run. The agent wrote `check.json`, `record.json` and `claim_input.json`
+into `/tmp`, and invoked `insurance_claim_review.py` **without `--output`**, so
+no `claims.json` was filed anywhere.
+
+Both artifacts quote
+`audit_hash: sha256:d4f404f5053a6d2ef2080284b7bc9814fd646394880780ed2c49918b0e4c4456`.
+**Nothing left in the workspace can reproduce it.** The payload that produced it
+is in `/tmp`, which is cleaned; the output it hashes was never written down. The
+envelope exists so a family, an auditor or a later run can replay a number
+instead of trusting it, and this run shipped the hash without the means.
+
+The record survived only because `letter_record.py` takes `--records` and writes
+the file itself. The one script whose output path is optional is the one that
+produced no artifact of record.
+
+**Reproduce:** case G, then `find <workspace> -name '*.json'` — the claim review
+is absent — and try to replay the hash in `out/family/` from what is there.
+
+**Fix.** The chain in `skills/letter-triage/SKILL.md` already shows
+`--output <claims.json>`; nothing says the run is unfinished without it, and the
+checklist does not list the filed review as a step. Say where a run's inputs
+belong, inside the workspace, and add the review output to the checklist
+alongside the two artifacts. Worth deciding whether `--output` should stop being
+optional, which is a `docs/CONTRACTS.md` change and therefore a stop-and-flag.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.

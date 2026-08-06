@@ -147,45 +147,49 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle N: the number that was never computed
+## Start here — cycle O: what the artifact says about itself
 
-**Cycle M fixed #17** and opened three findings by reading what the case G run
-actually wrote. The script change was small — `CLAIM_KEYS`, one
-`_reject_unknown`, four tests — and `evals/expected/insurance_claim_review.json`
-replays to the same hash it had before, which is the point: on valid input
-nothing changed.
+**Cycle N fixed #20 and half of #21**, both in prose, with no script touched.
+The #20 rule went into `agents/care-navigator.md` rather than only into
+`letter-triage`, because three of the four skills have never been measured on
+it and all four inherit the normative copy. `letter-triage/SKILL.md` paid for
+its half by cutting duplication: still exactly 991 words, ratchet unmoved.
 
-**That run was the best case G has had — tool pass, answer pass, all three traps
-cleared — and it still failed axis 3.** Read the cycle M block in
+**Case G came back pass / pass / fail again, and the failure moved up a level.**
+No invented date anywhere — that is #20 closed on one clean measurement. But the
+family artifact now certifies `**Status:** No human confirmation required` over
+a record carrying `REQUIRES_HUMAN_CONFIRMATION`. Read the cycle N block in
 `evals/RESULTS.md` before picking anything.
 
-- **#20 — an artifact carries a date no script produced.** The family checklist
-  says *"gather ... by 25 August 2026"*, two days before a correctly sourced
-  27 August, invented in prose as a buffer. **Take this first.** Every earlier
-  failure was a number written *instead of* a script's; this one was written
-  *beside* it, which means the rule is being read as "never compute the number
-  the script computes" and lead times, buffers and "about a week" all still feel
-  allowed. Check `daily-brief` and `deadline-watch` for the same hole.
-- **#21 — her copy tells her a computed figure was printed on the page.** *"They
-  are not my numbers — they are what the letter says."* The letter states 1,220
-  and 860, never 360. Small, prose-only, and it is a provenance claim made to
-  the one person who cannot check it.
-- **#16 is down to its reporting half and nothing else.** No refused value
-  reached her copy this time. But the record is flagged, and neither artifact
-  nor the answer says so. Give the flag a job — *why* a person should confirm
-  the letter's date wording — rather than restating that it must be named.
-- **#19 — the same unknown-key hole one level up.** `as_of` misspelled at the
-  top level of `insurance_claim_review.py` is silently today. Two lines, the
-  helper already exists, and it is the last silent-wrong-number path on disk.
+- **#22 — an artifact asserts the negation of a flag the record carries.**
+  **Take this first, and it outranks #16**, which it supersedes in severity: an
+  omitted flag costs a second look, a negated one is signed false confidence.
+  The mechanism is known — the run produced two flag sets, `letter_record.py`'s
+  and `insurance_claim_review.py`'s, the second legitimately empty, and the
+  agent generalised the second over the whole run. Two instructions, not one:
+  report every flag naming the script that raised it, and never state that no
+  confirmation is needed. Belongs in the agent file; every chained skill has
+  this shape.
+- **#21's remaining half — the offer, not the ban.** Her copy stopped saying the
+  letter states the balance and did not start saying it was worked out from the
+  page. Make the positive form the default, and state it where it binds both
+  artifacts: the family copy is where the false blanket reappeared.
+- **#23 — the run quotes an `audit_hash` nothing on disk can reproduce.**
+  Inputs written to `/tmp`, `insurance_claim_review.py` run without `--output`,
+  no `claims.json` filed. Deciding whether `--output` stops being optional is a
+  `docs/CONTRACTS.md` change — **stop and flag it** rather than making it.
+- **#19 — the unknown-key hole one level up.** `as_of` misspelled is silently
+  today. Two lines, the helper exists, and it is the last silent-wrong-number
+  path on disk.
 - **#18 — `deadline-watch` has neither half of the language rule**, and no eval
   case has ever reached its senior copy. A file that cannot fail an evaluation
-  is not passing it. Extend case E with `horizon_days` and `detail_level`
-  supplied up front, or write the case that does.
+  is not passing it.
 - **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
   canonical: `household/profile.json` or `out/household_profile.json`.
 
-**Then re-run case G, and read the artifacts rather than the JSON.** Three of
-the last four defects in this case were invisible in the output files and plain
-in the prose.
+**Then re-run case G, and read the artifacts rather than the JSON.** Four of the
+last five defects in this case were invisible in the output files and plain in
+the prose. **Diff every `flags` array the run wrote against what the artifacts
+claim** — that is the check that would have caught #22 a cycle earlier.
 
 Every script on disk is frozen except for #19's one check.

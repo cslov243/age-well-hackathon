@@ -304,6 +304,69 @@ class BothArtifactsTests(unittest.TestCase):
         self.assertIn("chronic_conditions", self.body)
 
 
+class NoNumberTheScriptDidNotProduceTests(unittest.TestCase):
+    """Findings #20 and #21, both measured on the cycle M case G run — the
+    best run this case has had, tool and answer both passing.
+
+    They are one defect wearing two hats. #20 is a date the artifact invented
+    beside a correct one; #21 is a claim about where a correct figure came
+    from. Neither is caught by anything in `tests/`, because both live in
+    prose the suite never reads, and neither is the old failure of writing a
+    number *instead of* a script's — in both cases the script's output was in
+    hand and right.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prose = prose_only(body())
+        cls.lower = cls.prose.lower()
+
+    def test_it_forbids_a_date_added_beside_a_correct_one(self):
+        # "- [ ] If appealing: gather itemised bill and referral letter by
+        #  25 August 2026" sat one line above the script's 27 August. Nothing
+        # in the checklist distinguished the date that survives a replay from
+        # the one that does not.
+        for term in ("beside", "second date", "as well as"):
+            if term in self.lower:
+                break
+        else:
+            self.fail("the prose never names a date added beside a correct one")
+
+    def test_it_names_the_shapes_an_invented_date_arrives_in(self):
+        # A buffer does not feel like arithmetic, which is why the existing
+        # rule did not catch it.
+        for term in ("buffer", "lead time", "start gathering", "working target"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "no example of an invented date that is not a recomputation")
+
+    def test_her_copy_may_not_say_the_letter_states_a_computed_figure(self):
+        # "All of this is in the letter. They are not my numbers — they are
+        # what the letter from Great Eastern says." The letter prints 1,220.00
+        # and 860.00. It does not print the 360.00 balance.
+        for term in ("worked out", "derived", "computed from"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "the prose gives her copy no way to attribute a figure to the "
+                "script's arithmetic, so the only attribution on offer is to "
+                "the page — which is false for every figure the script exists "
+                "to produce")
+
+    def test_the_provenance_rule_is_about_what_she_can_check(self):
+        # The point is not bookkeeping. "The letter says so" is precisely the
+        # claim the person being addressed cannot verify, because she is the
+        # one who cannot read the letter.
+        for term in ("check", "verify"):
+            if term in self.lower:
+                break
+        else:
+            self.fail("the provenance rule is stated without its reason")
+
+
 class RefusalTests(unittest.TestCase):
     """SKILL.md is injected at invocation. It carries its own constraints."""
 

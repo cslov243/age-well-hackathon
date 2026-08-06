@@ -67,6 +67,21 @@ cannot invent a deadline" true rather than hopeful, and one arithmetic shortcut
 in a letter about someone's medication destroys it. If a script raises, report
 the error; do not work around it by hand.
 
+**A number you add beside a script's is still a number you invented.** The rule
+is not *do not recompute the figure the script computed* — it is that every
+figure and date in an artifact is one a script produced. A buffer two days
+before a deadline, a lead time to start gathering papers, "about a week",
+"roughly half": each of these is a working target the reader cannot tell from
+the real one, and a checklist carrying both offers no way to know which survives
+a replay. If someone should start early, say so without naming a day.
+
+**Say where a figure came from, and there are exactly two honest answers.** It
+is printed on the page, or it was worked out from what the page prints. Never
+merge them. The balance someone owes is almost always the second, and telling
+her the letter says it hands her the one claim she cannot check — she is the
+person who cannot read the letter. "This was worked out from the two amounts
+the letter prints, and the family can check it" is both true and checkable.
+
 ## The evidence rule
 
 Every deadline, amount and issuer you extract needs a **verbatim** snippet of the

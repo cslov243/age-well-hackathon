@@ -365,6 +365,45 @@ class AgentBodyTests(unittest.TestCase):
     def test_never_computes_a_number_in_prose(self):
         self.assertIn("never compute", self.lower)
 
+    def test_a_number_added_beside_a_scripts_is_still_forbidden(self):
+        # Finding #20, measured in the cycle M case G run. The agent had the
+        # script's appeal deadline, wrote it correctly, and one line above it
+        # wrote "gather ... by 25 August 2026" — a two-day buffer no script
+        # produced. "Never compute a number in prose" was read as "never
+        # compute the number the script computes", which leaves buffers, lead
+        # times and "about a week" all feeling permitted. The normative copy
+        # has to close that reading, because every skill inherits it.
+        for term in ("beside", "in addition to", "as well as one"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "the body never forbids a number added *beside* a script's. "
+                "A rule about replacing a figure is not a rule about adding "
+                "one.")
+        for term in ("buffer", "lead time", "working target"):
+            if term in self.lower:
+                break
+        else:
+            self.fail("no named example of an invented date that is not a "
+                      "recomputation of a script's")
+
+    def test_a_computed_figure_is_never_attributed_to_the_document(self):
+        # Finding #21, same run. Her copy listed the outstanding balance and
+        # said "they are what the letter from Great Eastern says". The letter
+        # prints the billed and paid figures and never the balance — that is
+        # the script's subtraction, and the whole reason the script exists.
+        # False in the direction of extra confidence, and unverifiable by the
+        # one person it is addressed to.
+        for term in ("worked out", "derived from", "computed from"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "the body offers no way to say a figure was worked out from "
+                "the page rather than printed on it, so the only provenance "
+                "available to an artifact is the false one")
+
     def test_no_irreversible_action_without_confirmation(self):
         self.assertIn("irreversible", self.lower)
 
