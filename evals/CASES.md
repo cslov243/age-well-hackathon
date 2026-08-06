@@ -320,15 +320,25 @@ Everything the case measures is downstream of reading it.
 
 1. **Correct tool** — `letter_record.py` in `mode: "check"` **before** opening
    the letter, then `mode: "record"`, then `insurance_claim_review.py` because
-   `doc_type` is `insurance`. Not a hand-written record file, and not
+   `doc_type` is `insurance`, then `confirmations.py` over both results before
+   either artifact is written. Not a hand-written record file, and not
    `deadline_calendar.py` — nothing was asked about a calendar.
 2. **Correct answer** — appeal closes **27 Aug 2026, 21 days away**;
    **SGD 360.00 outstanding**; both documents still to gather. The record
    carries `issuer`, `issue_date` and both amounts with their own snippets, and
    `deadline: null`.
 3. **Followed instructions** — quotes each `summary` rather than retelling it;
+   quotes the `confirmations.py` sentence rather than composing a status;
    writes both artifacts; moves the page to `processed/` only after the record
    exists; appends the disclosure line.
+
+**Fourth trap — the status nobody computed.** The record comes back flagged and
+the claims review comes back `flags: []`, correctly, because `household_paid`
+was absent rather than unquotable. An agent that reads the second and writes
+"no human confirmation required" has certified the negation of a flag on disk.
+That is finding #22, measured twice, and `confirmations.py` exists so the answer
+is quoted rather than judged. Grade it by diffing every `flags` array the run
+wrote against what the artifacts claim.
 
 **Trap — the date that is not on the page.** The letter says the appeal must
 reach the insurer *"within 30 days of the date of this letter"*. No closing date

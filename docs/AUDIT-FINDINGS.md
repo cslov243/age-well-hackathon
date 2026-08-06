@@ -481,7 +481,7 @@ says `daily-brief` and `deadline-watch` "both carry" the substitution ban. Only
 
 ---
 
-## 16. A refused field is routed around rather than reported — HIGH — **NARROWED, STILL OPEN**
+## 16. A refused field is routed around rather than reported — HIGH — **FIXED**
 
 Same run, and the reason #14 reached the caregiver at all.
 
@@ -591,6 +591,22 @@ report a state it has already resolved to its own satisfaction. Naming what the
 line is *for* — that a human should confirm the letter's date wording, because a
 mis-read letter date moves the appeal deadline — is the version with a reason
 attached, and reasons are what the last two cycles show surviving into prose.
+
+---
+
+### Closed, cycle O, 6 August 2026
+
+Not by another rule about naming the flag — that was tried in cycles K, L and N
+and reached the artifacts none of those times. It closed when the flag was given
+a script: `confirmations.py` merges every producer's flags into one answer, and
+both artifacts quote it. On the first measurement the refusal reached **her copy**
+as well as the family's, in her own words: *"before anything is sent to the
+insurance company, your family needs to check one thing. The letter says you have
+thirty days, but it does not write down the exact last day anywhere."*
+
+The lesson is worth keeping for whoever reads this next: three cycles of
+instructing the model to report something did not, and moving the answer out of
+prose and into a script did, immediately. See #22.
 
 ---
 
@@ -820,7 +836,7 @@ form the default rather than the permission — a figure a script computed is
 
 ---
 
-## 22. An artifact asserts the negation of a flag the record carries — HIGH
+## 22. An artifact asserts the negation of a flag the record carries — HIGH — **FIXED**
 
 Found 6 August 2026, cycle N, reading the family artifact against the record
 that produced it. The artifact ends:
@@ -866,7 +882,53 @@ not a finding, and an artifact that says nothing about confirmation is correct
 where one that certifies its absence is not. `agents/care-navigator.md`, since
 this is not specific to letters.
 
-**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+### Fixed, cycle O, 6 August 2026
+
+`scripts/confirmations.py`, and it is the ninth script rather than a ninth rule.
+The two instructions the finding asked for are both in it: it reports every flag
+from every result it is handed, naming the script that raised each, and the
+answer to *does this run need a person* is its output rather than a judgement
+made from whichever flag list was read last.
+
+The design decisions that matter, all pinned by
+`tests/test_confirmations.py`:
+
+- **Fail-safe.** Any flag on any source produces an item, including a flag the
+  script does not recognise — `reason: "unrecognised_flag"`. A flag reading as
+  "nothing to see" is the defect; there is only one safe direction.
+- **It answers for its scope and says what that was.** `sentence` carries the
+  count of results checked, because an output nobody passed is an output nobody
+  checked and no reader can see the difference from the sentence alone.
+- **It refuses a source it cannot trust.** Each `audit_hash` is recomputed with
+  the function that wrote it — imported, not reimplemented — and a mismatch is
+  refused, as in `deadline_calendar.py`.
+- **The reason is copied, never inferred.** `letter_record.py` distinguishes
+  four ways a snippet can fail; the claim review records only that one did, and
+  its items say `missing_evidence` rather than guessing.
+- **The hash covers the verdict as well as the inputs**, so a replay cannot
+  reproduce one and disagree about the other. It excludes each source's
+  `tool_run_id` for the same reason it excludes its own: re-running a producer
+  on unchanged input gives a new run id, the same source hash and the same
+  answer, and two identical answers must hash identically. The first
+  implementation got this wrong and a test caught it.
+
+`docs/CONTRACTS.md` gained a `ConfirmationSet` section. **This is a contract
+change**, flagged and made deliberately: additive, no field on any existing
+record, no existing script altered.
+
+`agents/care-navigator.md` carries the ban the finding asked for — never state
+that no confirmation is needed unless that script said so — and both the toolkit
+and `letter-triage` checklists run the check *before* the artifacts that quote
+it, which a test now pins.
+
+**Measured on the cycle O case G run.** The family artifact quotes the sentence
+verbatim under `CONFIRMATION STATUS`; nothing certifies an absence. **Finding
+#16 closed with it** — the flag reached her copy for the first time, in her own
+words. Three cycles of instructing the model to name the flag did not achieve
+that; giving the flag a script did, first time.
+
+What the same run did *not* do is quote the per-item `ask`, and it paraphrased
+it into a different task. That is **#24**, not a reopening of this.
 
 ---
 
@@ -896,5 +958,87 @@ checklist does not list the filed review as a step. Say where a run's inputs
 belong, inside the workspace, and add the review output to the checklist
 alongside the two artifacts. Worth deciding whether `--output` should stop being
 optional, which is a `docs/CONTRACTS.md` change and therefore a stop-and-flag.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 24. The sentence is quoted and the ask beside it is paraphrased — HIGH
+
+Found 6 August 2026, cycle O, on the run that fixed #22. `confirmations.py`
+emits two things: one `sentence` for the whole run, and one `ask` per item
+saying what a person must actually do. The artifact quoted the first verbatim
+and rewrote the second into a different task.
+
+```
+confirmations.py said:  A person must read deadline off the document, and
+                        check the wording it was taken from.
+
+the artifact says:      HUMAN REVIEW REQUIRED: The letter does not explicitly
+                        state the specific appeal deadline date. Someone should
+                        verify the deadline calculation
+                        (30 days from 28 July = 27 August).
+```
+
+Her copy does the same: *"That means your last day to send a challenge is the
+twenty-seventh of August."*
+
+**These are not the same instruction, and the substitution runs the wrong way.**
+The letter's *wording* is what could not be quoted — that is why the field was
+nulled. The *arithmetic* is the one part of this the script did deterministically
+and the one part nobody needs to check. The artifact sends a person to audit a
+subtraction and leaves the unquotable sentence unread.
+
+It also prints `30 days from 28 July = 27 August`, an equation in prose beside a
+date that came from a script. That is not #20 — no invented date appears — but
+it is its cousin: an invented *derivation*, which fails the same way if the two
+ever disagree and gives a reader no way to tell which is load-bearing.
+
+**Reproduce:** case G to completion; compare each `items[].ask` in the
+confirmation set against the corresponding sentence in `out/family/`.
+
+**Fix, provisionally.** Quote the `ask` as well as the `sentence` — the checklist
+says "quote the confirmations sentence" and a per-item field it does not mention
+is a field that gets retold. Consider whether `ask` should be the thing quoted
+and `sentence` the summary, since `ask` is the part a person acts on. Worth
+adding to the toolkit rule that a *derivation* is prose arithmetic even when the
+result came from a script.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 25. The `check` call before extraction was skipped — HIGH — regression
+
+Found 6 August 2026, cycle O. `letter_record.py` ran once, in `mode: "record"`.
+The `check` call did not happen: `/tmp/record_input.json` carries
+`mode: "record"` and no second invocation exists in the transcript.
+
+This passed in cycles L, M and N. It is the first regression this eval has
+recorded.
+
+**What it costs.** `check` is the idempotency guarantee — hash the pages, ask
+whether these bytes are already filed, and stop on `should_extract: false`. A
+letter that gets photographed twice, or a folder that gets re-scanned, now files
+a second record that competes with the first rather than correcting it, and
+every deadline in the household is duplicated. It is also the only step that
+prevents paying for a second vision call on a page already read.
+
+**The instruction did not move.** The chain block in
+`skills/letter-triage/SKILL.md` still lists `check` first, the prose still says
+`should_extract: false` means stop, and `tests/test_letter_triage.py` still pins
+both. What changed this cycle is that the chain grew a fourth script and the
+checklist grew from five steps to six — the file is at its 991-word budget and
+the first step now competes with more.
+
+**Reproduce:** case G to completion; count `letter_record.py` invocations and
+read `mode` in each input.
+
+**Fix, provisionally.** The checklist's step 1 folds check, read and file into
+one line — *"Check, read the pages, then file into extracted/ and read the
+JSON"* — which reads as one action and is three. Split it, so the call that must
+come first occupies its own step. That costs words in a file with none spare,
+which is the honest cost of a fourth script in this chain and should be paid
+rather than avoided.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.

@@ -7,6 +7,99 @@ has never passed is not a regression, it is the backlog.
 
 ---
 
+## 2026-08-06 — after cycle O (confirmations.py, finding #22)
+
+Case G re-run, one cold Haiku agent, fresh scratch copy. A new script this
+cycle, so its hash is new; the two it reads are unchanged.
+
+| Case | Correct tool | Correct answer | Followed instructions |
+|---|---|---|---|
+| G — the letter | **fail (regression)** | pass | **fail** |
+
+**#22 is fixed, #16's reporting half is fixed with it, and the run lost the
+`check` call it had passed three cycles running.**
+
+**Axis 1 — fail, and it is a regression.** `letter_record.py` ran **once**, in
+`mode: "record"`. The `check` call that comes first — hash the pages, ask
+whether these bytes are already filed, do not open the image until the answer
+comes back — did not happen. `/tmp/record_input.json` carries `mode: "record"`
+and there is no second invocation in the transcript. Everything after it was
+right: `insurance_claim_review.py` because `doc_type` is `insurance`, then
+`confirmations.py` over both results before either artifact was written, then
+the page moved to `processed/`.
+
+The instruction did not move. The chain block still shows `check` first and the
+prose still says `should_extract: false` means stop. What changed is that the
+chain grew a fourth script and the checklist grew from five steps to six.
+Opened as **#25**: this is the idempotency guarantee, and without it a
+re-scanned letter files a second record that competes with the first.
+
+**Axis 2 — pass, verified by replay.** SGD 360.00, appeal closing 27 Aug 2026,
+21 days, `deadline: null` on the record, both documents to gather. The claim
+review replays to
+`sha256:69d0ca14c9ed930b557230bd33ab408eb36032c35dd0a5cc3e288d67bc462504` and
+the confirmation set to
+`sha256:7dce12d6670df3fc5b0a3dfa4a5fd1e43d5ebf5a25d082d13c45066a50a46352`,
+both byte for byte, both matching what the family artifact quotes.
+
+**#22 — fixed. The family artifact quotes the sentence verbatim:**
+
+```
+CONFIRMATION STATUS
+As per the script analysis: "1 thing in the 2 script outputs checked needs a
+person before anything is sent: deadline on letter-cf7a35500ef237c1."
+```
+
+No certification of an absence anywhere in either artifact or the answer. The
+sentence that said `No human confirmation required` over a flagged record is
+gone, and what replaced it is a quotation with a hash beside it.
+
+**#16 — fixed, and this is the first time.** The flag reached **her copy** as
+well, in her own words: *"before anything is sent to the insurance company, your
+family needs to check one thing. The letter says you have thirty days, but it
+does not write down the exact last day anywhere."* Three cycles of naming the
+flag in prose did not do this; giving the flag a script that answers for the
+whole run did it on the first measurement.
+
+**#20 — holds, second measurement.** No date in either artifact that a script
+did not produce.
+
+**#15 — holds, fourth measurement.** `Read-aloud script, in English`.
+
+**#21 — unchanged.** Her copy says *"That leaves three hundred and sixty
+dollars ... The letter says this is your responsibility"*, which is accurate —
+the letter does state the balance is the policyholder's — and it still never
+says the figure was worked out from the two amounts printed on the page. The
+ban holds; the offer has never landed.
+
+**Axis 3 — fail, on what the artifacts did with the `ask`.** The sentence was
+quoted verbatim. The per-item `ask` was not, and what replaced it is a different
+instruction:
+
+```
+confirmations.py said:  A person must read deadline off the document, and
+                        check the wording it was taken from.
+
+the artifact says:      HUMAN REVIEW REQUIRED: ... Someone should verify the
+                        deadline calculation (30 days from 28 July = 27 August).
+```
+
+Those are not the same task. The wording is what could not be quoted; the
+arithmetic is the one part of this a script did deterministically. The artifact
+sends a person to check the machine's subtraction instead of the letter's
+sentence, and prints `30 days from 28 July = 27 August` — an equation in prose,
+beside a date that came from a script. Her copy does the same with *"That means
+your last day ... is the twenty-seventh of August."*
+
+Opened as **#24**. Quoting one field verbatim and paraphrasing the field beside
+it is a partial fix that reads as a complete one.
+
+**#23 unchanged and unfixed** — all three inputs written to `/tmp`, no
+`--output` on either the claim review or the confirmation set, so the three
+hashes in the artifact reproduce only from files outside the workspace.
+
+---
+
 ## 2026-08-06 — after cycle N (the number nobody computed, findings #20 and #21)
 
 Case G re-run, one cold Haiku agent, scratch copy of the workspace. No script

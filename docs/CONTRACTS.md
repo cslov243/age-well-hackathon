@@ -554,6 +554,59 @@ separate action confirmed one event at a time.
 
 ---
 
+## ConfirmationSet
+
+Written by `scripts/confirmations.py`. Added 6 August 2026 for audit finding
+#22. **Additive** — it introduces no field on any existing record and changes no
+existing script. It reads results and reports on them.
+
+Every other contract here answers *is this record clean*. Nothing answered *does
+this run need a person*, so the model answered it, and a family artifact
+certified `No human confirmation required` over a record flagged
+`REQUIRES_HUMAN_CONFIRMATION` — because the claim review in the same run had
+returned `flags: []` legitimately. A run that chains two scripts has two flag
+lists, and one being empty says nothing about the other.
+
+Input: `records` and `claims`, lists of whole results passed **verbatim**.
+**Both keys are required and `[]` is legal**; an absent key means a set of flags
+was never read. Each `audit_hash` is recomputed with the function that wrote it
+— imported, not reimplemented — and a mismatch is refused. A source dated after
+`as_of` is refused. An unrecognised top-level key is refused.
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `human_confirmation_required` | bool | True whenever `items` is non-empty. **The only place this question is answered.** |
+| `items[]` | list | `{tool, subject, source_audit_hash, field, reason, ask}`, ordered deterministically. |
+| `items_counted` | int | `== len(items)`. |
+| `sources_checked[]` | list | `{tool, tool_run_id, audit_hash, as_of, age_days}` — one per result passed. |
+| `sentence` | string | One line, **quoted verbatim into both artifacts**. |
+| `summary` | string | The sentence, each `ask`, what was checked, and that nothing was submitted. |
+
+`reason` is copied from the producer, never inferred. `letter_record.py`
+distinguishes `no_snippet`, `blank_snippet`, `value_not_in_snippet` and
+`nothing_evidenced`; `insurance_claim_review.py` records only *that* a field
+could not be quoted, so its items say `missing_evidence`. A flag this script
+does not recognise produces an item with `field: null` and
+`reason: "unrecognised_flag"` — **fail-safe is the only safe direction**, since
+an unknown flag reading as "nothing to see" is the defect being fixed.
+
+`audit_hash` covers the answer as well as the sources, so a replay cannot
+reproduce the inputs and disagree about the verdict. It excludes each source's
+`tool_run_id` for the same reason it excludes its own: re-running a producer on
+unchanged inputs yields a new run id, the same source hash, and the same answer,
+and two identical answers must hash identically.
+
+### It answers only for what it was handed
+
+`sentence` carries the count of results checked, because an output nobody passed
+is an output nobody checked and a reader cannot see the difference. "Nothing
+needs a person" is a claim about a scope, and the scope travels with it.
+
+The artifacts quote `sentence`. An artifact that composes its own confirmation
+status has taken the judgement back.
+
+---
+
 ## HouseholdProfile
 
 Single source of truth. Lives at `out/household_profile.json`, read at the top of
