@@ -97,7 +97,12 @@ Whether unattended scheduled runs clear WorkBuddy's permission dialog is
 
 ## What exists
 
-Eight scripts, the manifest, the agent, the toolkit `SKILL.md`, the
+Eight scripts and one shared module — `scripts/_evidence.py`, which holds the
+one check that a snippet contains the value quoted for it, imported by
+`letter_record.py` and `insurance_claim_review.py`. It has no command line; the
+leading underscore is what keeps it out of the manifest's invocation rule.
+
+Also the manifest, the agent, the toolkit `SKILL.md`, the
 `letter-triage`, `medication-watch`, `daily-brief` and `deadline-watch` skills,
 the README.
 Backlog: `LOOP-PROMPT.md`.

@@ -147,28 +147,40 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle K: one evidence gate, not two
+## Start here — cycle L: the two prose findings from the same run
 
-**`docs/AUDIT-FINDINGS.md` #14 is the item.** Measured 6 August, eval case G: a
-cold agent worked out a balance the letter never printed, quoted it against
-*"The balance is payable by the policyholder"* — a line with no number in it —
-and `insurance_claim_review.py` accepted it, flagged nothing, and told the
-caregiver she owed SGD 0.00 against a letter saying SGD 360.00.
+**Cycle K closed #14** — the containment checks now live in
+`scripts/_evidence.py` and both scripts import them, with the identity of the
+function objects pinned in `tests/test_evidence.py`. That was the code half of
+eval case G. The two that remain are prose, and prose is where every failure
+this project has measured actually lives.
 
-`letter_record.py` refused the identical pair in the same run. Two scripts, one
-rule, two strengths, and the weaker one is the one that produces money.
+- **#15 — `letter-triage` does not carry the language-substitution ban.**
+  `daily-brief` and `deadline-watch` both have it; the file that ran did not,
+  and her copy came out as written Chinese headed *"read-aloud script in
+  Hokkien"*. The rule to add is not "never substitute": it is that a read-aloud
+  fallback must be **labelled as the language it is actually written in**.
+  Cheapest fix in the repo and it costs a senior her own language.
+- **#16 — a refused field is routed around rather than reported.** The agent
+  kept two figures the gate had nulled and moved them past it by hand-feeding
+  the next script. `insurance_claim_review.py` now refuses them, so the money
+  path is closed — but nothing yet tells an agent that a refused value must not
+  be carried into an artifact, an answer, or another script's input. The
+  toolkit `SKILL.md` gained that sentence in cycle K; `letter-triage` has not.
+  Note that placement is *not* the answer here: #16's rule was already a headed
+  bullet and was still ignored, which is the first counter-example to #10.
+- **#17 — `insurance_claim_review.py` ignores an unrecognised claim key.** Found
+  in the cycle K re-run. One `_reject_unknown` over the claim's keys, matching
+  `letter_record.py`. This is code, and small; take it first if you want the
+  suite green before touching prose.
 
-- **Lift `_snippet_has_amount`, `_snippet_has_date` and `_snippet_has_issuer`
-  out of `letter_record.py`** and have `insurance_claim_review.py` import them,
-  the way `deadline_calendar.py` imports `audit_hash_of`. A second
-  implementation is a second answer that eventually disagrees; that is the whole
-  finding.
-- **Pin the reproduction from #14 as a test** before changing anything.
-- Expect the existing `insurance_claim_review.py` tests to need new fixtures:
-  snippets written to be present-and-nonblank now have to contain their values.
-- **Then findings #15 and #16**, both from the same run and both cheap: the
-  substitution ban is missing from `letter-triage`, and nothing tells an agent
-  that a value the gate refused must not be handed to the next script by hand.
-- **Re-run case G** — and case F, still owed from cycle B for finding #12.
+Both #15 and #16 were **narrowed** by the cycle K re-run rather than reproduced
+whole — read their updated entries before writing anything, because the halves
+that remain are not the halves that were originally measured.
 
-Every script on disk was frozen. #14 is the bug that unfreezes one of them.
+**Then re-run case G.** Case F was re-run in cycle K and finding #12 is closed:
+the agent refused the password, refused to batch, and asked for `horizon_days`
+and `detail_level` in the caregiver's own words. Writing no file is the right
+answer when it holds neither setting.
+
+Every script on disk is frozen again. Cycle L should not need to touch one.

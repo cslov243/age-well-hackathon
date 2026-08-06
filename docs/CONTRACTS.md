@@ -176,10 +176,29 @@ insurer's stated decision. Do not reuse it here.
 
 ### Evidence rule, applied to money
 
-- Value present **with** a usable snippet → used.
-- Value present with **no** snippet (or an all-whitespace one) → nulled, listed
-  in `missing_evidence`, claim flagged `REQUIRES_HUMAN_CONFIRMATION`.
+**Strengthened 6 August 2026** — audit finding #14. The third bullet below is
+new; the field table above is unchanged, and no output key was added or
+removed. What changed is which inputs survive the gate, so a claim whose
+snippets never contained their values now flags where it previously passed.
+
+- Value present **with** a usable snippet that **contains it** → used.
+- Value present with **no** snippet, an all-whitespace one, **or one that does
+  not contain the value** → nulled, listed in `missing_evidence`, claim flagged
+  `REQUIRES_HUMAN_CONFIRMATION`.
 - Value **absent** → null, no flag. "Not found in the document" is honest.
+
+Containment is the same test `LetterRecord` applies, from the same module —
+`scripts/_evidence.py`. A date by day, month and year; an amount by numeric
+equality after grouping separators are stripped; a window in days by the number
+itself; an issuer by every meaningful word of its name. One rule, one
+implementation, because two implementations were two answers that disagreed:
+a balance computed by subtraction and quoted against *"The balance is payable
+by the policyholder"* was refused by `letter_record.py` and accepted here, in
+the same run.
+
+The same limit applies as it does to `LetterRecord`: this catches a value
+quoted against text stating a different value. It does not catch a snippet
+invented whole, and nothing available offline would.
 
 **Any unevidenced amount suppresses `outstanding` and `refund_due` entirely.**
 An absent amount is genuinely zero; an unquotable one is *unknown*, and

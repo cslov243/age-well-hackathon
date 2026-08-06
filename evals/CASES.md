@@ -19,7 +19,12 @@ Claude Code session and a few minutes.
    ```
    python3 skills/care-coordinator-toolkit/scripts/medication_runout.py --input <repo>/evals/fixtures/care/household/medication.json > evals/expected/medication_runout.json
    python3 skills/care-coordinator-toolkit/scripts/expense_split.py --input <repo>/evals/fixtures/care/household/split_input.json > evals/expected/expense_split.json
+   python3 skills/care-coordinator-toolkit/scripts/insurance_claim_review.py --input <repo>/evals/fixtures/claim_input.json --output evals/expected/insurance_claim_review.json
    ```
+
+   `claim_input.json` sits **outside** `fixtures/care/` on purpose. Case G is
+   about assembling that payload from the letter; a copy of it inside the
+   workspace would hand the agent the answer.
 
    A changed `audit_hash` is a real change in behaviour. Explain it or revert it.
 

@@ -79,6 +79,13 @@ documents.
 | `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
 | `deadline_calendar.py` | Dates already computed by the two scripts above, turned into calendar events and an `.ics` a person imports. It copies dates and computes none. |
 
+Beside them sits `_evidence.py`, which is not a script and has no command line:
+it holds the check that a snippet actually contains the value it is quoted for.
+`letter_record.py` and `insurance_claim_review.py` both import it. They used to
+implement it separately, to two different strengths, and on 6 August 2026 the
+weaker one accepted a balance that had been worked out by subtraction and
+quoted against a line of prose with no number in it.
+
 They take the same form, two of them with a further path of their own:
 
 ```
@@ -129,7 +136,7 @@ From the repo root:
 python3 -m unittest discover -s tests
 ```
 
-That runs 564 tests in about eight seconds, with one skip — the avatar file
+That runs 801 tests in about nine seconds, with one skip — the avatar file
 below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is

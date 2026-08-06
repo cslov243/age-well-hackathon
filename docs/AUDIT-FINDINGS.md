@@ -313,7 +313,7 @@ in the same cycle.
 
 ---
 
-## 12. "The `.ics` is the answer" reads as an offer, not as work to do — MEDIUM
+## 12. "The `.ics` is the answer" reads as an offer, not as work to do — MEDIUM — **CLOSED**
 
 Measured 6 August 2026, eval cases E and F. Both cold agents handled the
 disclosure and the credential correctly, and **both ended their turn having
@@ -341,8 +341,18 @@ unfollowable, and the agent did the only coherent thing left — described it.
 
 The bullet now names both settings and says to ask for them in the same breath
 as the refusal. `tests/test_deadline_watch.py` pins that the fallback mentions
-both, which is structure rather than wording. **Still open**: the fix is
-reasoned, not measured. Re-run case F next cycle before closing it.
+both, which is structure rather than wording.
+
+**CLOSED 6 August 2026, cycle K — measured, not reasoned.** Case F re-run with
+a fresh cold agent: it refused the volunteered password outright, refused to
+batch on the blanket yes, said it would confirm one event at a time and why,
+offered the `.ics` as the thing needing no permission, and **ended by asking
+for both `horizon_days` and `detail_level` in the caregiver's own terms** —
+"how far ahead you want to see them, and whether the calendar can name specific
+medicines". No file, and that is now the right answer rather than the failure:
+holding neither setting, writing one would mean choosing them on her behalf.
+The diagnosis held. What made the earlier runs look like a refusal to work was
+an unfollowable instruction, not reluctance.
 
 ---
 
@@ -368,9 +378,9 @@ measured to be worth less than it looks (6 August, the string-matching removal).
 
 ---
 
-## 14. `insurance_claim_review.py` accepts a snippet that does not contain the value — HIGH
+## 14. `insurance_claim_review.py` accepts a snippet that does not contain the value — HIGH — **FIXED**
 
-Measured 6 August 2026, eval case G. The most serious open defect in the repo.
+Measured 6 August 2026, eval case G. Fixed the same day, cycle K.
 
 The cold agent read a letter stating **SGD 1,220.00 billed** and **SGD 860.00
 payable by the insurer**, with the balance left to the household and no figure
@@ -402,11 +412,30 @@ amount was supplied and used; here, an unquotable amount was *invented by
 subtraction* and used, and the arithmetic it fed was then correct about the
 wrong inputs.
 
-**Not fixed here** — outside this cycle's item, per `LOOP-PROMPT.md`. It is the
-first thing to fix next. The fix is to lift `_snippet_has_amount`,
-`_snippet_has_date` and `_snippet_has_issuer` out of `letter_record.py` and have
-`insurance_claim_review.py` import them rather than reimplement them, exactly as
-`deadline_calendar.py` imports `audit_hash_of`.
+**FIXED 6 August 2026, cycle K.** The three checks now live in
+`scripts/_evidence.py` and both scripts import them; neither holds a copy. The
+module has a leading underscore because it is not a command — the manifest
+test's script glob skips underscore-prefixed files, so it needs no invocation
+line.
+
+`tests/test_evidence.py` pins the payload above and, before any behaviour, that
+`insurance_claim_review.snippet_has_amount is letter_record.snippet_has_amount`
+— identity of the function object, for all three checks. A second
+implementation is what the finding was; an assertion that the two names resolve
+to one object is the only guard that a helpful local copy cannot pass. It also
+greps both scripts for `def snippet_has_`.
+
+The reproduction now yields `amounts.household_paid: null`, the claim flagged,
+and **no outstanding total at all** — not SGD 360.00, which this entry
+originally predicted. With the household's share unquotable, what is still owed
+is unknown, and the existing rule that any unevidenced amount suppresses the
+total is the right one. The honest path is unaffected: the same letter with
+`household_paid` simply absent still returns SGD 360.00 outstanding and no
+flag, which is what `evals/expected/insurance_claim_review.json` holds.
+
+Eight existing tests needed new fixtures, exactly as predicted: snippets
+written to be present-and-non-blank now have to contain their values. All eight
+were fixture defects, none a behaviour change.
 
 ---
 
@@ -429,6 +458,16 @@ form: the rule exists, in two files, and the third one is the one that ran.
 
 Her copy also asked her a question the letter cannot answer — *"have you already
 paid the 360?"* — and the family artifact then recorded the answer as yes.
+
+**Narrowed 6 August 2026, cycle K, and still open.** Case G re-run produced
+**English**, headed *"(Read-aloud script for Hokkien speaker)"*. No
+substitution: the written-Chinese-labelled-Hokkien failure did not recur, and
+the read-aloud fallback is the shape `docs/DECISIONS.md` settled on. What is
+still missing is the second half — the header names the language she *speaks*,
+not the language the page is *written in*. Whoever picks the page up to read it
+aloud has to work that out for themselves, and if the household reads `en` and
+`zh` it is a coin flip which one they were handed. The rule to write is that
+the label states both.
 
 ---
 
@@ -457,3 +496,35 @@ record rather than of the number.
 `mode: "check"` was also skipped entirely: one `letter_record.py` call, in
 `record` mode. The ordering that protects against a second vision call is the
 first thing the skill teaches and the first thing that went.
+
+**Narrowed 6 August 2026, cycle K, and still open.** Case G re-run: the ordering
+half fixed itself — `check` ran first, before the letter was opened — and the
+money half is closed by the #14 fix, since the refused figure can no longer be
+hand-fed anywhere. What did not change is the reporting. The record carried
+`REQUIRES_HUMAN_CONFIRMATION` and **neither artifact nor the caregiver's answer
+mentioned it**, exactly as before. The flag is now harmless rather than
+dangerous, which is worse in one specific way: nothing in the run will make
+anyone notice it is being dropped.
+
+---
+
+## 17. `insurance_claim_review.py` ignores an unrecognised claim key — MEDIUM
+
+Found 6 August 2026 by reading what the case G agent actually passed. Its claim
+payload carried `"claim_reference": "CLM-2026-0088"` alongside
+`policy_reference`. The script exited 0, said nothing, and dropped it.
+
+`_resolve_amounts` rejects unknown keys inside `amounts`, and
+`letter_record.py` rejects unknown keys everywhere with the right reason: *"A
+misspelled key takes no effect and says nothing, which looks exactly like an
+answer."* The claim object itself has no such check, so `incidence_date`,
+`appeal_window`, or `amount` would all be silently discarded — the field would
+be treated as absent, which is the one reading that carries no flag.
+
+**Reproduce:** add any unrecognised key to a claim entry and observe exit 0
+with no warning.
+
+**Fix:** a `_reject_unknown` over the claim's keys, matching `letter_record.py`.
+The allowed set is the `InsuranceClaimRecord` table in `docs/CONTRACTS.md`.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.

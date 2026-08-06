@@ -41,11 +41,19 @@ What this script does NOT do, by construction:
   * It says nothing about the medical content of the claim.
 
 Evidence rule (CLAUDE.md, docs/CONTRACTS.md): every deadline, amount and issuer
-needs a verbatim snippet in `evidence` under its field path. A value asserted
-without a snippet is nulled, listed in `missing_evidence`, and the claim is
-flagged REQUIRES_HUMAN_CONFIRMATION. Arithmetic downstream of a nulled field is
-not attempted. A field simply absent from the document is null without a flag —
+needs a verbatim snippet in `evidence` under its field path, **and the snippet
+has to contain the value it is offered for** — see `_evidence.py`. A value with
+no snippet, a blank one, or one quoting text that says something else is
+nulled, listed in `missing_evidence`, and the claim is flagged
+REQUIRES_HUMAN_CONFIRMATION. Arithmetic downstream of a nulled field is not
+attempted. A field simply absent from the document is null without a flag —
 "not found" is honest; "found, but unquotable" is not.
+
+The containment half was added 6 August 2026, after a cold agent worked a
+balance out by subtraction, quoted it against a line with no number in it, and
+this script reported SGD 0.00 outstanding against a letter saying SGD 360.00.
+`letter_record.py` refused the identical pair in the same run; both now call
+the same functions.
 
 Money is Decimal end to end. Every date and status derives from one resolved
 `as_of`, never the wall clock, so any run replays to the same audit hash.
@@ -62,6 +70,16 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _evidence import (  # noqa: E402
+    VERBATIM_LIMIT,
+    snippet_has_amount,
+    snippet_has_date,
+    snippet_has_days,
+    snippet_has_issuer,
+)
 
 SG = timezone(timedelta(hours=8), name="+08:00")
 CENT = Decimal("0.01")
@@ -82,8 +100,10 @@ HANDOFF = ("Nothing here has been submitted, appealed or decided by this tool. "
 
 EVIDENCE_RULE = (
     "every deadline, amount and issuer requires a verbatim snippet in "
-    "'evidence' under its field path; an asserted value with no snippet is "
-    "nulled and the claim is flagged " + FLAG
+    "'evidence' under its field path, and the snippet has to contain the "
+    "value it is offered for. An asserted value with no snippet, a blank one, "
+    "or one that quotes text saying something else is nulled and the claim is "
+    "flagged " + FLAG
 )
 DECISION_RULE = (
     "insurer_decision is read off the document as one of " +
@@ -202,9 +222,16 @@ def _money_text(amount):
 class Gate:
     """Applies the evidence rule to one claim and records what failed it.
 
-    A value present with a usable snippet passes through. A value present with
-    no snippet, or an all-whitespace one, is dropped to None and recorded. A
-    value that is simply absent is None without complaint.
+    A value survives only when its snippet exists, is not blank, **and
+    contains the value it is offered for**. Anything else is dropped to None
+    and recorded. A value that is simply absent is None without complaint.
+
+    That last condition is audit finding #14. Without it, a balance worked out
+    by subtraction and quoted against "The balance is payable by the
+    policyholder" — a line with no number in it — was accepted, and the
+    caregiver was told she owed SGD 0.00 against a letter saying SGD 360.00.
+    The containment checks live in `_evidence.py` so that this script and
+    `letter_record.py` cannot drift back apart.
     """
 
     def __init__(self, entry, evidence, where):
@@ -220,19 +247,29 @@ class Gate:
             return None
         return snippet.strip()
 
-    def take(self, field, convert, raw=None):
+    def _refuse(self, field, reason):
+        self.missing.append(field)
+        LOG.warning("%s.%s: %s — nulled and flagged", self.where, field, reason)
+        return None
+
+    def take(self, field, convert, contains, raw=None):
         value = self.entry.get(field) if raw is None else raw
         if value is None:
             return None
+        # Converted before anything else, so a malformed value is refused
+        # loudly rather than hidden behind the missing-evidence path.
+        converted = convert(value, f"{self.where}.{field}")
         snippet = self._snippet(field)
         if snippet is None:
-            self.missing.append(field)
-            # Converted anyway, so a malformed value is still refused loudly
-            # rather than hidden behind the missing-evidence path.
-            convert(value, f"{self.where}.{field}")
-            return None
+            return self._refuse(field, "nothing quoted for it")
+        if not contains(snippet, converted):
+            return self._refuse(
+                field,
+                f"{value!r} does not appear in the text quoted for it "
+                f"({snippet!r}); the value and its evidence disagree, and the "
+                f"evidence is the one that was on the page")
         self.used[field] = snippet
-        return convert(value, f"{self.where}.{field}")
+        return converted
 
 
 # --------------------------------------------------------------------------
@@ -263,7 +300,8 @@ def _resolve_amounts(entry, gate, where):
     resolved = {}
     for key in AMOUNT_KEYS:
         resolved[key] = gate.take(
-            f"amounts.{key}", _to_money, raw=amounts.get(key)
+            f"amounts.{key}", _to_money, snippet_has_amount,
+            raw=amounts.get(key)
         )
     return resolved
 
@@ -293,21 +331,23 @@ def _resolve_claim(entry, index, as_of):
             f"outcome and does not map free text onto the nearest one"
         )
 
-    insurer = gate.take("insurer", _to_text)
-    incident_date = gate.take("incident_date", _to_date)
+    insurer = gate.take("insurer", _to_text, snippet_has_issuer)
+    incident_date = gate.take("incident_date", _to_date, snippet_has_date)
     if incident_date is not None and incident_date > as_of:
         raise InvalidInput(
             f"{where}: incident_date {incident_date.isoformat()} is after "
             f"as_of {as_of.isoformat()}"
         )
-    submission_window = gate.take("submission_window_days", _to_whole_days)
-    decision_date = gate.take("decision_date", _to_date)
+    submission_window = gate.take("submission_window_days", _to_whole_days,
+                                  snippet_has_days)
+    decision_date = gate.take("decision_date", _to_date, snippet_has_date)
     if decision_date is not None and decision_date > as_of:
         raise InvalidInput(
             f"{where}: decision_date {decision_date.isoformat()} is after "
             f"as_of {as_of.isoformat()}"
         )
-    appeal_window = gate.take("appeal_window_days", _to_whole_days)
+    appeal_window = gate.take("appeal_window_days", _to_whole_days,
+                              snippet_has_days)
     amounts = _resolve_amounts(entry, gate, where)
 
     policy_reference = None
@@ -507,10 +547,12 @@ def _summarise(reviewed, as_of):
 
     if reviewed["missing_evidence"]:
         parts.append(
-            "These figures had no quotable line in the letter and are left "
-            "blank rather than guessed: "
+            "These figures had no line in the letter that quotes them, and "
+            "are left blank rather than guessed: "
             + ", ".join(reviewed["missing_evidence"])
-            + ". A person needs to read the letter and confirm them."
+            + ". A person needs to read the letter and confirm them. Until "
+            "someone does, do not carry them forward by hand into anything "
+            "else — a figure this tool refused is not a figure."
         )
 
     parts.append(HANDOFF)
@@ -572,6 +614,7 @@ def review_claims(document):
         "claims_requiring_human_confirmation": needing_human,
         "conventions": {
             "evidence": EVIDENCE_RULE,
+            "verbatim": VERBATIM_LIMIT,
             "decision": DECISION_RULE,
             "outstanding": OUTSTANDING_RULE,
             "decisions": list(DECISIONS),

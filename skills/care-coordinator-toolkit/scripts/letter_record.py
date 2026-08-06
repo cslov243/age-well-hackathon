@@ -76,17 +76,23 @@ import argparse
 import hashlib
 import json
 import logging
-import re
 import sys
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-SG = timezone(timedelta(hours=8), name="+08:00")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+from _evidence import (  # noqa: E402
+    MONTHS,
+    VERBATIM_LIMIT,
+    snippet_has_amount,
+    snippet_has_date,
+    snippet_has_issuer,
+)
+
+SG = timezone(timedelta(hours=8), name="+08:00")
 
 FLAG = "REQUIRES_HUMAN_CONFIRMATION"
 
@@ -110,36 +116,12 @@ GATED_FIELDS = ("issuer", "issue_date", "deadline")
 PROBLEM_REASONS = ("no_snippet", "blank_snippet", "value_not_in_snippet",
                    "nothing_evidenced")
 
-# Words a company name ends with that a letterhead may or may not print.
-SUFFIXES = {"ltd", "limited", "pte", "llp", "inc", "plc", "co", "company",
-            "holdings", "sg", "singapore"}
-
-NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
-DIGITS = re.compile(r"\d+")
-WORD = re.compile(r"[0-9a-z]+")
-
-MONTH_NUMBER = {}
-for _index, _short in enumerate(MONTHS, start=1):
-    MONTH_NUMBER[_short.lower()] = _index
-MONTH_NUMBER.update({
-    "january": 1, "february": 2, "march": 3, "april": 4, "june": 6,
-    "july": 7, "august": 8, "september": 9, "sept": 9, "october": 10,
-    "november": 11, "december": 12,
-})
-
 EVIDENCE_RULE = (
     "issuer, issue_date, deadline and every amount survive only with a "
     "snippet that exists, is not blank, and contains the value it is evidence "
     "for. Anything else is nulled and listed in missing_evidence, and the "
     "record is flagged " + FLAG + ". A field the letter never mentioned is "
     "null with no snippet and no flag: absent is an answer, unquotable is not"
-)
-VERBATIM_LIMIT = (
-    "verbatim cannot be verified here. There is no document text to diff a "
-    "snippet against, only an image the model already looked at, so this "
-    "checks that the extracted value appears in the text quoted for it. That "
-    "catches a number quoted against text saying a different number. It does "
-    "not catch a snippet invented whole, and no check available here would"
 )
 IDENTITY_RULE = (
     "content_hash covers every page's bytes in the order given, so the same "
@@ -220,47 +202,6 @@ def _human_date(value):
 
 def _count(number, noun, plural=None):
     return f"{number} " + (noun if number == 1 else (plural or noun + "s"))
-
-
-# --------------------------------------------------------------------------
-# is the value actually in the text quoted for it
-# --------------------------------------------------------------------------
-
-def _snippet_has_amount(snippet, amount):
-    for token in NUMBER.findall(snippet):
-        try:
-            if Decimal(token.replace(",", "")) == amount:
-                return True
-        except InvalidOperation:
-            continue
-    return False
-
-
-def _snippet_has_date(snippet, value):
-    tokens = set(DIGITS.findall(snippet))
-    lower = snippet.lower()
-    if str(value.year) not in tokens:
-        return False
-    if str(value.day) not in tokens and f"{value.day:02d}" not in tokens:
-        return False
-    if str(value.month) in tokens or f"{value.month:02d}" in tokens:
-        return True
-    return any(name in lower for name, number in MONTH_NUMBER.items()
-               if number == value.month)
-
-
-def _snippet_has_issuer(snippet, issuer):
-    """Every meaningful word of the name appears somewhere in the letterhead.
-
-    Case and a company suffix are what differ between a name written out in a
-    record and the same name printed on a page; the words themselves are not.
-    """
-    wanted = [word for word in WORD.findall(issuer.lower())
-              if len(word) >= 3 and word not in SUFFIXES]
-    if not wanted:
-        return bool(issuer.strip()) and issuer.strip().lower() in snippet.lower()
-    present = set(WORD.findall(snippet.lower()))
-    return all(word in present for word in wanted)
 
 
 # --------------------------------------------------------------------------
@@ -606,7 +547,7 @@ def _gated_record(document, gate, record_id, content_hash, pages, as_of):
         if not isinstance(issuer, str) or not issuer.strip():
             raise InvalidInput("fields.issuer must be a name, or null")
         if not gate.check("issuer",
-                          lambda snippet: _snippet_has_issuer(snippet, issuer)):
+                          lambda snippet: snippet_has_issuer(snippet, issuer)):
             issuer = None
 
     dates = {}
@@ -621,7 +562,7 @@ def _gated_record(document, gate, record_id, content_hash, pages, as_of):
                 f"fields.issue_date {value} is in the future relative to "
                 f"as_of {as_of.isoformat()}. One of the two is wrong and this "
                 f"cannot tell which")
-        if gate.check(key, lambda snippet, p=parsed: _snippet_has_date(snippet, p)):
+        if gate.check(key, lambda snippet, p=parsed: snippet_has_date(snippet, p)):
             dates[key] = parsed.isoformat()
         else:
             dates[key] = None
@@ -632,7 +573,7 @@ def _gated_record(document, gate, record_id, content_hash, pages, as_of):
         for index, raw in enumerate(raw_amounts):
             amount = _to_amount(raw, f"fields.amounts[{index}]")
             if gate.check(f"amounts[{index}]",
-                          lambda snippet, a=amount: _snippet_has_amount(snippet, a)):
+                          lambda snippet, a=amount: snippet_has_amount(snippet, a)):
                 kept.append(str(raw).strip())
             else:
                 refused = True

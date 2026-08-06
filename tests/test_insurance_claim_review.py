@@ -64,6 +64,27 @@ def claim(**over):
     return entry
 
 
+AMOUNT_LINES = {
+    "billed": "Total hospital bill: SGD {}",
+    "insurer_paid": "Amount payable by us: SGD {}",
+    "household_paid": "Deductible borne by policyholder: SGD {}",
+}
+
+
+def money(**amounts):
+    """A claim whose evidence quotes exactly the figures passed to it.
+
+    An arithmetic test is about the arithmetic. Without this it trips the
+    evidence gate on the fixture's own stale snippets instead, and passes or
+    fails for a reason it was not written to check.
+    """
+    evidence = {k: v for k, v in FULL_EVIDENCE.items()
+                if not k.startswith("amounts.")}
+    for key, value in amounts.items():
+        evidence[f"amounts.{key}"] = AMOUNT_LINES[key].format(value)
+    return claim(amounts=dict(amounts), evidence=evidence)
+
+
 def undecided():
     """A claim the insurer has not yet ruled on, so it is valid at any as_of
     on or after the incident date."""
@@ -137,8 +158,8 @@ class TestEvidenceRule(unittest.TestCase):
     def test_an_absent_amount_still_counts_as_zero(self):
         """Absent means 'the letter never mentioned it', which is not the same
         as 'stated but unquotable'. Only the latter suppresses the total."""
-        entry = only(run(payload([claim(amounts={
-            "billed": "100.00", "insurer_paid": "40.00"})])))
+        entry = only(run(payload([money(billed="100.00",
+                                        insurer_paid="40.00")])))
         self.assertEqual(Decimal(entry["outstanding"]), Decimal("60.00"))
 
     def test_deadline_without_a_snippet_is_nulled_and_flagged(self):
@@ -278,7 +299,11 @@ class TestSubmissionDeadline(unittest.TestCase):
         self.assertEqual(item["days_remaining"], -1)
 
     def test_zero_day_window_is_the_incident_date_itself(self):
-        entry = only(run(payload([claim(submission_window_days=0)])))
+        evidence = dict(FULL_EVIDENCE)
+        evidence["submission_window_days"] = ("Claims close 0 days after the "
+                                              "date of discharge.")
+        entry = only(run(payload([claim(submission_window_days=0,
+                                        evidence=evidence)])))
         self.assertEqual(deadline(entry, "submission")["due_on"], "2026-06-01")
 
     def test_status_vocabulary_is_closed(self):
@@ -294,8 +319,11 @@ class TestSubmissionDeadline(unittest.TestCase):
         self.assertIn("1 Jun 2026", deadline(entry, "submission")["basis"])
 
     def test_incident_date_after_as_of_is_refused(self):
+        evidence = dict(FULL_EVIDENCE)
+        evidence["incident_date"] = "Date of admission: 01 Sep 2026"
         with self.assertRaises(icr.InvalidInput):
-            run(payload([claim(incident_date="2026-09-01")]))
+            run(payload([claim(incident_date="2026-09-01",
+                               evidence=evidence)]))
 
     def test_negative_window_is_refused(self):
         with self.assertRaises(icr.InvalidInput):
@@ -336,8 +364,11 @@ class TestAppealDeadline(unittest.TestCase):
         self.assertEqual(deadline(reviewed, "appeal")["status"], "unknown")
 
     def test_decision_date_after_as_of_is_refused(self):
+        evidence = dict(FULL_EVIDENCE)
+        evidence["decision_date"] = "Assessment date: 01 Sep 2026"
         with self.assertRaises(icr.InvalidInput):
-            run(payload([claim(decision_date="2026-09-01")]))
+            run(payload([claim(decision_date="2026-09-01",
+                               evidence=evidence)]))
 
 
 # ---------------------------------------------------------------------------
@@ -350,19 +381,19 @@ class TestAmounts(unittest.TestCase):
         self.assertEqual(Decimal(entry["outstanding"]), Decimal("1220.00"))
 
     def test_outstanding_is_exact_to_the_cent(self):
-        entry = only(run(payload([claim(amounts={
-            "billed": "100.05", "insurer_paid": "33.35",
-            "household_paid": "0.01"})])))
+        entry = only(run(payload([money(billed="100.05",
+                                        insurer_paid="33.35",
+                                        household_paid="0.01")])))
         self.assertEqual(Decimal(entry["outstanding"]), Decimal("66.69"))
 
     def test_overpayment_is_reported_as_a_refund_not_a_negative(self):
-        entry = only(run(payload([claim(amounts={
-            "billed": "100.00", "insurer_paid": "120.00"})])))
+        entry = only(run(payload([money(billed="100.00",
+                                        insurer_paid="120.00")])))
         self.assertEqual(Decimal(entry["refund_due"]), Decimal("20.00"))
         self.assertEqual(Decimal(entry["outstanding"]), Decimal("0.00"))
 
     def test_absent_optional_amounts_are_treated_as_zero_paid(self):
-        entry = only(run(payload([claim(amounts={"billed": "100.00"})])))
+        entry = only(run(payload([money(billed="100.00")])))
         self.assertEqual(Decimal(entry["outstanding"]), Decimal("100.00"))
 
     def test_binary_float_amount_is_refused_not_coerced(self):
@@ -478,6 +509,106 @@ class TestEnvelopeAndValidation(unittest.TestCase):
             run(payload(as_of="4 August 2026"))
 
 
+class TestTheSnippetMustContainTheValue(unittest.TestCase):
+    """Audit finding #14, measured 6 August 2026 in eval case G.
+
+    A snippet that exists and is not blank was accepted as evidence for any
+    value at all. The cold agent worked the household's share out by
+    subtraction, quoted it against a line of prose with no number in it, and
+    was told SGD 0.00 was outstanding against a letter saying SGD 360.00.
+
+    `letter_record.py` refused the identical value-and-snippet pair in the same
+    run. These tests hold the two scripts to one strength.
+    """
+
+    def reproduction(self):
+        """The payload from the finding, verbatim."""
+        return payload([claim(
+            insurer_decision="partially_paid",
+            decision_date="2026-07-28",
+            appeal_window_days=30,
+            amounts={"billed": "1220.00", "insurer_paid": "860.00",
+                     "household_paid": "360.00"},
+            evidence={
+                "insurer": FULL_EVIDENCE["insurer"],
+                "incident_date": FULL_EVIDENCE["incident_date"],
+                "submission_window_days":
+                    FULL_EVIDENCE["submission_window_days"],
+                "decision_date": "Assessment date: 28 Jul 2026",
+                "appeal_window_days": "Any appeal must be lodged within 30 days.",
+                "amounts.billed": "Total hospital bill: SGD 1,220.00",
+                "amounts.insurer_paid": "Amount payable by us: SGD 860.00",
+                "amounts.household_paid":
+                    "The balance is payable by the policyholder",
+            },
+        )], as_of="2026-08-06")
+
+    def test_the_invented_figure_is_nulled(self):
+        entry = only(run(self.reproduction()))
+        self.assertIsNone(entry["amounts"]["household_paid"])
+
+    def test_the_invented_figure_is_listed_as_missing_evidence(self):
+        entry = only(run(self.reproduction()))
+        self.assertIn("amounts.household_paid", entry["missing_evidence"])
+
+    def test_the_claim_is_flagged(self):
+        entry = only(run(self.reproduction()))
+        self.assertIn(FLAG, entry["flags"])
+
+    def test_no_outstanding_total_is_produced(self):
+        """The observed failure was 'SGD 0.00 outstanding'. The right answer is
+        not SGD 360.00 either — with the household's share unquotable, what is
+        still owed is unknown, and an unevidenced amount suppresses the total.
+        """
+        entry = only(run(self.reproduction()))
+        self.assertIsNone(entry["outstanding"])
+        self.assertIsNone(entry["refund_due"])
+
+    def test_the_summary_never_says_zero_is_outstanding(self):
+        entry = only(run(self.reproduction()))
+        self.assertNotIn("SGD 0.00 outstanding", entry["summary"])
+        self.assertIn("no outstanding total is calculated", entry["summary"])
+
+    def test_the_refused_snippet_is_not_echoed_as_evidence(self):
+        """Echoing it would present the thing that failed the check as the
+        thing that passed it."""
+        entry = only(run(self.reproduction()))
+        self.assertNotIn("amounts.household_paid", entry["evidence"])
+
+    def test_a_deadline_computed_from_a_relative_window_is_refused(self):
+        """The other half of the same run: '30 days' quoted against a phrase
+        that says 'within 30 days' is fine; a date quoted against it is not."""
+        evidence = dict(FULL_EVIDENCE)
+        evidence["decision_date"] = "within 30 days of the date of this letter"
+        entry = only(run(payload([claim(evidence=evidence)])))
+        self.assertIsNone(entry["decision_date"])
+        self.assertIsNone(deadline(entry, "appeal")["due_on"])
+        self.assertIn(FLAG, entry["flags"])
+
+    def test_an_issuer_quoted_against_another_insurer_is_refused(self):
+        evidence = dict(FULL_EVIDENCE)
+        evidence["insurer"] = "NTUC INCOME INSURANCE LIMITED"
+        entry = only(run(payload([claim(evidence=evidence)])))
+        self.assertIsNone(entry["insurer"])
+        self.assertIn(FLAG, entry["flags"])
+
+    def test_a_window_quoted_against_a_different_number_is_refused(self):
+        evidence = dict(FULL_EVIDENCE)
+        evidence["submission_window_days"] = ("Claims must be submitted within "
+                                              "60 days of the date of discharge.")
+        entry = only(run(payload([claim(evidence=evidence)])))
+        self.assertEqual(deadline(entry, "submission")["status"], "unknown")
+        self.assertIn("submission_window_days", entry["missing_evidence"])
+
+    def test_a_refusal_reads_the_same_way_in_both_scripts(self):
+        """Same value, same snippet, same verdict, whichever script sees it."""
+        import letter_record
+        self.assertFalse(letter_record.snippet_has_amount(
+            "The balance is payable by the policyholder", Decimal("360.00")))
+        entry = only(run(self.reproduction()))
+        self.assertIn("amounts.household_paid", entry["missing_evidence"])
+
+
 class TestCommandLine(unittest.TestCase):
     def _run(self, doc, extra=()):
         return subprocess.run(
@@ -502,7 +633,10 @@ class TestCommandLine(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "out.json"
-            proc = self._run(payload([claim(insurer="鹰星保险")]),
+            evidence = dict(FULL_EVIDENCE)
+            evidence["insurer"] = "鹰星保险有限公司"
+            proc = self._run(payload([claim(insurer="鹰星保险",
+                                            evidence=evidence)]),
                              extra=["--output", str(out)])
             self.assertEqual(proc.returncode, 0)
             self.assertIn("鹰星保险",

@@ -163,6 +163,17 @@ you cannot quote it, do not supply it — the script nulls the field, lists it i
 `missing_evidence` and flags the claim `REQUIRES_HUMAN_CONFIRMATION`. That is the
 correct outcome, not a failure.
 
+**The snippet has to contain the value.** The same check `letter_record.py`
+applies, from the same module: a date by day, month and year; an amount or a
+window in days by the number itself; an insurer by every meaningful word of its
+name. A figure quoted against *"The balance is payable by the policyholder"* is
+refused, because that line has no number in it. Quoting nearby text does not
+make a computed figure quotable.
+
+**A value either script refused is not a value.** Do not hand it to the next
+script by hand, do not carry it into an artifact, and do not report it as
+settled. Say which fields need a person and what the letter would have to show.
+
 | Looks alike | Is not |
 |---|---|
 | **Absent** — the letter never mentioned it | Zero is often right |
