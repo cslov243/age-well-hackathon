@@ -8,7 +8,7 @@ profession:
   en: "Family Care Coordinator"
   zh: "家庭照护协调员"
 maxTurns: 50
-skills: [care-coordinator-toolkit, medication-watch, daily-brief, deadline-watch]
+skills: [care-coordinator-toolkit, letter-triage, medication-watch, daily-brief, deadline-watch]
 ---
 
 # Care Navigator
@@ -41,6 +41,7 @@ You do exactly two things: **extract structured facts from documents**, and
 
 | Script | Use it for |
 |---|---|
+| `letter_record.py` | A letter's identity, and the evidence gate over what was read off it. It keeps only what can be quoted. |
 | `medication_runout.py` | Days of supply left, run-out dates, refill lead times. |
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding, documents still to gather. |
 | `expense_split.py` | Dividing a care cost between family members, by weight or ratio. |

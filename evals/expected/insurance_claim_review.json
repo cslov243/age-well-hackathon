@@ -1,0 +1,75 @@
+{
+  "tool_run_id": "85ff68ca-5c2a-4d5c-830e-1e054f5f05a9",
+  "issued_at": "2026-08-06T13:48:47+08:00",
+  "as_of": "2026-08-06",
+  "currency": "SGD",
+  "claims_counted": 1,
+  "claims_requiring_human_confirmation": 0,
+  "conventions": {
+    "evidence": "every deadline, amount and issuer requires a verbatim snippet in 'evidence' under its field path; an asserted value with no snippet is nulled and the claim is flagged REQUIRES_HUMAN_CONFIRMATION",
+    "decision": "insurer_decision is read off the document as one of paid, partially_paid, rejected, pending, not_stated; this tool never assesses coverage itself",
+    "outstanding": "outstanding = billed - insurer_paid - household_paid, floored at zero; any excess is reported as refund_due instead of a negative outstanding",
+    "decisions": [
+      "paid",
+      "partially_paid",
+      "rejected",
+      "pending",
+      "not_stated"
+    ],
+    "statuses": [
+      "ok",
+      "due_today",
+      "overdue",
+      "unknown"
+    ],
+    "handoff": "Nothing here has been submitted, appealed or decided by this tool. Check the letter itself, and speak to the insurer or a family member, before anything is sent."
+  },
+  "claims": [
+    {
+      "id": "CLM-2026-0088",
+      "insurer": "Great Eastern Life Assurance Limited",
+      "policy_reference": "GE-4471902",
+      "incident_date": null,
+      "insurer_decision": "partially_paid",
+      "decision_date": "2026-07-28",
+      "amounts": {
+        "billed": "1220.00",
+        "insurer_paid": "860.00",
+        "household_paid": null
+      },
+      "outstanding": "360.00",
+      "refund_due": "0.00",
+      "deadlines": [
+        {
+          "kind": "submission",
+          "due_on": null,
+          "days_remaining": null,
+          "status": "unknown",
+          "basis": "the letter does not give both an incident date and a submission window with a quotable line, so no closing date is calculated"
+        },
+        {
+          "kind": "appeal",
+          "due_on": "2026-08-27",
+          "days_remaining": 21,
+          "status": "ok",
+          "basis": "30 days from the insurer's decision date, 28 Jul 2026, closing 27 Aug 2026"
+        }
+      ],
+      "documents_outstanding": [
+        "original itemised bill",
+        "referral letter from the attending doctor"
+      ],
+      "missing_evidence": [],
+      "evidence": {
+        "insurer": "GREAT EASTERN LIFE ASSURANCE LIMITED",
+        "decision_date": "Date of this letter: 28 July 2026",
+        "appeal_window_days": "must reach us within 30 days of the date of this letter",
+        "amounts.billed": "Total amount billed          SGD 1,220.00",
+        "amounts.insurer_paid": "Amount payable by us         SGD   860.00"
+      },
+      "flags": [],
+      "summary": "Great Eastern Life Assurance Limited — our reference CLM-2026-0088. The insurer records this claim as partly paid. Billed SGD 1220.00; the letter states SGD 860.00 payable by the insurer. That leaves SGD 360.00 outstanding. Submission window: the letter does not give both an incident date and a submission window with a quotable line, so no closing date is calculated. Appeal window: 30 days from the insurer's decision date, 28 Jul 2026, closing 27 Aug 2026, which is 21 days from 6 Aug 2026. Still to gather: original itemised bill, referral letter from the attending doctor. Nothing here has been submitted, appealed or decided by this tool. Check the letter itself, and speak to the insurer or a family member, before anything is sent."
+    }
+  ],
+  "audit_hash": "sha256:031df2ae0233ff20514bb727d4ebc1fc637fe7b4030a0d67bedc893a544b9414"
+}

@@ -11,6 +11,7 @@
   ],
   "skills": [
     "./skills/care-coordinator-toolkit",
+    "./skills/letter-triage",
     "./skills/medication-watch",
     "./skills/daily-brief",
     "./skills/deadline-watch"

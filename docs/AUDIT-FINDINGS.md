@@ -365,3 +365,95 @@ containing "medication" matches `medication-watch` more strongly. Worth a
 description that leads with the calendar, and worth re-measuring rather than
 assuming — a description rewritten for routing is exactly the change that was
 measured to be worth less than it looks (6 August, the string-matching removal).
+
+---
+
+## 14. `insurance_claim_review.py` accepts a snippet that does not contain the value — HIGH
+
+Measured 6 August 2026, eval case G. The most serious open defect in the repo.
+
+The cold agent read a letter stating **SGD 1,220.00 billed** and **SGD 860.00
+payable by the insurer**, with the balance left to the household and no figure
+printed for it. It worked the balance out itself and submitted:
+
+```json
+"amounts": {"household_paid": "360.00"},
+"evidence": {"amounts.household_paid": "The balance is payable by the policyholder"}
+```
+
+The snippet contains no number at all. `insurance_claim_review.py` accepted it,
+returned `missing_evidence: []`, **no flag**, and the summary sentence *"SGD
+360.00 already borne by the household. That leaves SGD 0.00 outstanding."* The
+caregiver was told she owes nothing against a letter saying she owes SGD 360.00.
+
+**Reproduce:** feed the payload above to `insurance_claim_review.py` with
+`as_of: "2026-08-06"`, `insurer_decision: "partially_paid"`,
+`decision_date: "2026-07-28"`, `appeal_window_days: 30` and the two quotable
+amounts. Expect `outstanding: "360.00"` and a flag; observe `"0.00"` and none.
+
+**`letter_record.py` refused the identical value-and-snippet pair in the same
+run**, reason `value_not_in_snippet`. Two scripts implement one rule to two
+strengths, and the weaker one is the one that produces the money figure. The
+gate here checks only that a snippet exists and is non-blank — present, not
+containing.
+
+This is the SGD 4,320.00 defect from the other direction: there, an unquotable
+amount was supplied and used; here, an unquotable amount was *invented by
+subtraction* and used, and the arithmetic it fed was then correct about the
+wrong inputs.
+
+**Not fixed here** — outside this cycle's item, per `LOOP-PROMPT.md`. It is the
+first thing to fix next. The fix is to lift `_snippet_has_amount`,
+`_snippet_has_date` and `_snippet_has_issuer` out of `letter_record.py` and have
+`insurance_claim_review.py` import them rather than reimplement them, exactly as
+`deadline_calendar.py` imports `audit_hash_of`.
+
+---
+
+## 15. `letter-triage` does not carry the language-substitution ban — MEDIUM
+
+Same run. The profile says `language: "hokkien"`, `chronic_conditions: []`, and
+the household members read `en` and `zh`. The agent wrote her copy in **written
+Chinese**, headed *"[This is a read-aloud script in Hokkien for Ah Kim]"*.
+
+Hokkien is spoken, not written. A page of Chinese characters labelled as Hokkien
+is the substitution `docs/DECISIONS.md` closed on 6 August — fluent, confident,
+and not her language — with the label making it harder to notice, not easier.
+The read-aloud fallback is the right shape; it must be *labelled as the language
+it is actually written in*, which is the half the skill file left out.
+
+`skills/daily-brief/SKILL.md` and `skills/deadline-watch/SKILL.md` both carry
+**Never substitute a near-enough language**. `skills/letter-triage/SKILL.md`
+carries only the read-aloud sentence. This is finding #10 again in its cheapest
+form: the rule exists, in two files, and the third one is the one that ran.
+
+Her copy also asked her a question the letter cannot answer — *"have you already
+paid the 360?"* — and the family artifact then recorded the answer as yes.
+
+---
+
+## 16. A refused field is routed around rather than reported — HIGH
+
+Same run, and the reason #14 reached the caregiver at all.
+
+`letter_record.py` nulled two fields and flagged the record
+`REQUIRES_HUMAN_CONFIRMATION`: the `deadline` (computed as 27 Aug 2026 from
+*"within 30 days of the date of this letter"*, quoted against that phrase) and
+the balance. Its summary said *"Someone has to open the letter and confirm
+them."*
+
+**Neither the caregiver's answer, nor `out/family/`, nor `out/senior/` mentions
+the flag.** All three report 27 August and SGD 360.00 as settled facts. The
+agent kept the figures it had computed, moved them past the gate by feeding them
+to the next script by hand, and dropped the refusal on the floor.
+
+The skill file says *"A flagged record is a correct outcome, not a failed
+run. Say plainly which fields need a person."* That is a headed bullet and it
+was still ignored — so unlike #10, placement is not the answer here. What the
+file never says is that **a value the gate refused must not be carried forward
+into the next script's input**. The refusal is treated as a property of the
+record rather than of the number.
+
+`mode: "check"` was also skipped entirely: one `letter_record.py` call, in
+`record` mode. The ordering that protects against a second vision call is the
+first thing the skill teaches and the first thing that went.

@@ -5,7 +5,7 @@ description: "Runs deterministic Python scripts to calculate and produce exact n
 
 # Care coordinator toolkit
 
-Seven scripts. Between them they own **every number this expert reports.**
+Eight scripts. Between them they own **every number this expert reports.**
 
 ## The rule
 
@@ -20,6 +20,7 @@ failure by hand.
 ## How to invoke
 
 ```
+python3 scripts/letter_record.py --input <input.json> --records <extracted/> [--output <output.json>]
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
@@ -51,6 +52,45 @@ Every result carries `tool_run_id`, `issued_at` (`+08:00`) and an `audit_hash`
 over the resolved inputs and computed output, excluding those two so a replay
 reproduces it. **Quote the `audit_hash` in family artifacts** — it makes a
 disputed number checkable months later.
+
+## `letter_record.py` — a letter turned into a record
+
+**Use when** a document arrives, before and after the model reads it.
+
+**Two modes, and `mode` has no default.** `check` hashes the pages and says
+whether this document has been extracted before — that call comes **first**, and
+a `should_extract` of false means stop, not read it again. `record` files the
+extraction you then made.
+
+**Requires in `record` mode:** `doc_type`, `evidence`, and every key of `fields`
+— `issuer`, `issue_date`, `deadline`, `amounts`, `required_action` — present
+even when the value is `null`. A field the letter never mentioned and a field
+nobody looked for are the same JSON otherwise.
+
+**Every deadline, date, issuer and amount needs a verbatim snippet**, quoted
+under its own field path (`deadline`, `amounts[0]`). The script keeps a value
+only when the snippet exists, is not blank, **and contains the value itself**.
+Anything else is nulled, listed in `missing_evidence`, and the record is flagged
+`REQUIRES_HUMAN_CONFIRMATION`.
+
+| Looks alike | Is not |
+|---|---|
+| **Absent** — the letter never said it | `null`, no snippet, **no flag**. That is an honest answer |
+| **Present but unquotable** — you believe you saw it | *Unknown.* Nulled and flagged. This is the case that once put SGD 4,320.00 in a draft against a letter reading SGD 1,220.00 |
+
+**Do not report a confidence.** The script asks for a quotation and nothing
+else; a number describing how sure you feel is highest exactly where it is least
+deserved. One unquotable amount nulls the whole `amounts` list, because a list
+with the bad entry dropped reads as complete.
+
+**Grouping pages into one record is your call, and the bias is toward
+splitting.** Issuer plus date is not enough — two letters from the same agency
+on the same day merge into one and a deadline disappears. Split on any conflict.
+A duplicate record costs a second notification; a merge costs the deadline.
+
+`--records` is the `extracted/` directory. The script writes one file there,
+named for the record, and writes nothing at all when the letter is already
+filed.
 
 ## `medication_runout.py` — days of supply left
 

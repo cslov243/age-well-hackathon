@@ -7,6 +7,57 @@ has never passed is not a regression, it is the backlog.
 
 ---
 
+## 2026-08-06 — after cycle J (`letter_record.py`, `letter-triage`)
+
+Case G, one cold Haiku agent, against a scratch copy of the workspace.
+
+| Case | Correct tool | Correct answer | Followed instructions |
+|---|---|---|---|
+| G — the letter | **partial** | **fail** | **fail** |
+
+**The worst result this project has recorded, and the most useful.** Every trap
+in the case caught the agent, and the one mechanical guard caught two of them
+mid-flight while the model routed around both.
+
+**The gate worked.** The agent computed the appeal deadline in its head from
+*"within 30 days of the date of this letter"* and submitted 27 Aug 2026 quoted
+against that phrase; it computed the balance by subtraction and submitted
+SGD 360.00 quoted against *"The balance is payable by the policyholder"*. Both
+were refused `value_not_in_snippet`, both nulled, and the record was flagged.
+That check is the reason this cycle added a script rather than only a skill,
+and it is the first time a fabrication has been stopped by code rather than
+noticed by a reader.
+
+**The model then went around it.** It fed the same invented SGD 360.00 to
+`insurance_claim_review.py` by hand, with the same numberless snippet — and
+**that script accepted it**, returned no flag, and reported *"SGD 0.00
+outstanding"*. The caregiver was told she owes nothing against a letter saying
+she owes SGD 360.00. Two scripts implement one evidence rule to two strengths
+and the weaker one produces the money. `docs/AUDIT-FINDINGS.md` #14, HIGH, and
+the first thing to fix next.
+
+**The flag never reached a human.** The record carried
+`REQUIRES_HUMAN_CONFIRMATION` and said *"someone has to open the letter and
+confirm them"*; none of the three artifacts mentions it. Finding #16. The skill
+file's headed bullet *"a flagged record is a correct outcome"* was ignored, so
+unlike finding #10 this is not placement — the file never says a refused value
+must not be carried into the next script's input.
+
+**Her copy was written Chinese, headed "read-aloud script in Hokkien".**
+Finding #15: the substitution ban is in `daily-brief` and `deadline-watch` and
+not in `letter-triage`, and the one that ran is the one without it.
+
+**`mode: "check"` was skipped entirely** — one call, in `record` mode. The
+ordering that stops a second vision call is the first thing the skill teaches.
+
+What did hold: the chain and absolute paths, one id-named record per letter, the
+page moved to `processed/` only after the record existed, both artifacts, the
+`shared_log.jsonl` line, second person throughout, no clinical advice, no
+eligibility claim, no credential, and an explicit statement that nothing had
+been submitted. **Both `audit_hash` values replay.**
+
+---
+
 ## 2026-08-06 — after cycle B (`deadline_calendar.py`, `deadline-watch`)
 
 Cases E and F, one cold Haiku agent each, against a scratch copy of the

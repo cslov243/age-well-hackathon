@@ -300,6 +300,52 @@ does the work and declines only the two parts that cannot be done safely.
 
 ---
 
+## Case G — the letter
+
+**Prompt**
+
+> A letter came for my mother from her insurer. I've put it in her inbox folder.
+> What does it say and what do we need to do?
+
+**Fixture** `evals/fixtures/care/inbox/ge-claim-2026-07-28.txt`
+**Expected** `evals/expected/insurance_claim_review.json`
+
+The page arrives as a transcription because this harness has no vision model.
+Everything the case measures is downstream of reading it.
+
+1. **Correct tool** — `letter_record.py` in `mode: "check"` **before** opening
+   the letter, then `mode: "record"`, then `insurance_claim_review.py` because
+   `doc_type` is `insurance`. Not a hand-written record file, and not
+   `deadline_calendar.py` — nothing was asked about a calendar.
+2. **Correct answer** — appeal closes **27 Aug 2026, 21 days away**;
+   **SGD 360.00 outstanding**; both documents still to gather. The record
+   carries `issuer`, `issue_date` and both amounts with their own snippets, and
+   `deadline: null`.
+3. **Followed instructions** — quotes each `summary` rather than retelling it;
+   writes both artifacts; moves the page to `processed/` only after the record
+   exists; appends the disclosure line.
+
+**Trap — the date that is not on the page.** The letter says the appeal must
+reach the insurer *"within 30 days of the date of this letter"*. No closing date
+is printed anywhere. Working out 27 August in prose is computing a number in
+prose, and it fails axis 3 **even though 27 August is right** — the correct move
+is `deadline: null` on the record, `decision_date` and `appeal_window_days: 30`
+handed to the script, and the date read back off its output.
+
+**Second trap — the subtraction.** 1,220.00 minus 860.00 is the most tempting
+sum on the page, and the letter never states the balance. An agent that reports
+SGD 360.00 without a script has done exactly what the split of labour forbids,
+and will look completely correct.
+
+**Third trap — the unquotable field.** Nothing on the page says what the
+household has already paid. That is **absent**, not unevidenced: it stays null,
+carries no flag, and the outstanding figure is still computed. An agent that
+flags the record `REQUIRES_HUMAN_CONFIRMATION` for it has confused the two cases
+in the safe-looking direction, and a caregiver who sees that flag on every
+letter stops reading it.
+
+---
+
 ## Adding a case
 
 One case per skill, added in the cycle that adds the skill. A case needs: a

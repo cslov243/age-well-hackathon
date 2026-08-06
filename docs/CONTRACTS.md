@@ -66,6 +66,47 @@ agency on the same day will false-merge. Split on any field conflict — differi
 deadlines, differing amounts, differing doc types. A duplicate record costs an
 annoying second notification; a merged record silently eats a deadline.
 
+### How one is produced — `scripts/letter_record.py`
+
+Added 6 August 2026. The table above is unchanged; this says who fills it in.
+
+```
+python3 scripts/letter_record.py --input <input.json> --records <extracted/>
+```
+
+`--records` is the `extracted/` directory: read in both modes, written in one.
+
+| Input field | Notes |
+|---|---|
+| `mode` | required, no default: `check` \| `record` |
+| `source_files` | required, non-empty, **in page order** — the identity is the bytes |
+| `doc_type`, `fields`, `evidence` | required in `record`, **refused** in `check` |
+
+`check` runs **before** the vision model and answers `should_extract`. `record`
+runs after it. A `content_hash` already present in `--records` is a no-op:
+nothing is written and the existing record stands.
+
+Every key of `fields` is required even when the value is `null` —
+`issuer`, `issue_date`, `deadline`, `amounts`, `required_action`. `evidence`
+is keyed by field path, with amounts at `amounts[0]`, `amounts[1]`, …
+
+**The gate keeps a value only when its snippet exists, is not blank, and
+contains the value itself** — a date by day, month and year; an amount by
+numeric equality after grouping separators are stripped; an issuer by every
+meaningful word of its name. Anything else is nulled, listed in
+`missing_evidence` with a reason in `evidence_problems`, and flagged
+`REQUIRES_HUMAN_CONFIRMATION`. One unquotable amount nulls the whole `amounts`
+list: a list with the bad entry dropped reads as a complete set of figures.
+
+A record where nothing at all could be quoted is flagged too, reason
+`nothing_evidenced`. That is what an unreadable scan looks like, and it must
+not pass as a letter that happened to say nothing.
+
+**What the check cannot do.** There is no document text here to diff a snippet
+against, only an image the model already looked at. It catches a value quoted
+against text stating a different value; it does not catch a snippet invented
+whole, and nothing available offline would.
+
 ---
 
 ## TaskRecord

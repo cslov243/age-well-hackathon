@@ -115,16 +115,22 @@ Order set 4 August 2026, after the pivot to connectors. Reasoning:
 | 13 | `purchase_terms.py` and the `medication-watch` skill — the chain that makes the connectors visible | Done |
 | 13a | `daily-brief` — nearest clinic and days-of-supply in the senior card | Done |
 | 15 | `deadline-watch` — `deadline_calendar.py`, an `.ics` a person imports, and an optional confirmed calendar write | Done |
-| 14 | `letter-triage` — the entry point for the core loop | Next, and at risk |
+| 14 | `letter-triage` — `letter_record.py`, the evidence gate, and the entry point for the core loop | Done |
 
-**That is the whole backlog.** Three days to submission, and the demo still has
-no entry point: nothing extracts a letter. 14 is the one item left that makes
-the pitch true on stage. Everything else —
-deadline windows, the escalation cooldown, profile merge, the shared evidence
-validator, letter dedupe, `verify_scheme.py`, and the remaining three skills —
-is **cut**, not deferred, and must not be re-added before 9 August. Their
-intended behaviour stays recorded in `docs/AUDIT-FINDINGS.md` for whoever picks
-this up after Demo Day.
+**That is the whole backlog, and it is done.** Three days to submission. Every
+remaining item is either blocked on a human, listed below, or an open finding in
+`docs/AUDIT-FINDINGS.md`. Everything else —
+deadline windows, the escalation cooldown, profile merge, `verify_scheme.py`,
+and the remaining two skills — is **cut**, not deferred, and must not be
+re-added before 9 August. Their intended behaviour stays recorded in
+`docs/AUDIT-FINDINGS.md` for whoever picks this up after Demo Day.
+
+**Two items came off that cut list on 6 August**: the evidence validator and
+letter dedupe. Both are inside `letter_record.py` rather than beside it, because
+item 14 could not be built without them — the evidence rule says *a script
+validates this*, and a `letter-triage` that let the model self-report its
+evidence would have shipped the one hard constraint as prose. Dedupe is the same
+script's other half: identity is what tells the model not to read a page twice.
 
 Items 10–13 were the pivot: the connectors are where the agent does something
 concrete in the world *for the senior*, rather than for the family's paperwork.
@@ -141,28 +147,28 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle J, backlog item 14: `letter-triage`
+## Start here — cycle K: one evidence gate, not two
 
-The entry point of the core loop, and the last thing standing between the pitch
-and the demo: nothing in the repo extracts a document today. **This is the item
-at risk** — two days to submission — so scope it to one document type working
-end to end rather than to six.
+**`docs/AUDIT-FINDINGS.md` #14 is the item.** Measured 6 August, eval case G: a
+cold agent worked out a balance the letter never printed, quoted it against
+*"The balance is payable by the policyholder"* — a line with no number in it —
+and `insurance_claim_review.py` accepted it, flagged nothing, and told the
+caregiver she owed SGD 0.00 against a letter saying SGD 360.00.
 
-Re-read `docs/WORKBUDDY-PLATFORM.md` first. Skill format is not in your training
-data and the published docs are wrong in at least one place.
+`letter_record.py` refused the identical pair in the same run. Two scripts, one
+rule, two strengths, and the weaker one is the one that produces money.
 
-- **On file arrival**, and equally caregiver-triggered. Whether a watched folder
-  fires unattended is `[UNKNOWN]`; write for both answers.
-- **Extraction is the one thing the model does here.** Every number after that
-  comes from a script — `insurance_claim_review.py` for a `doc_type` of
-  `insurance`, which is deliberately not a seventh skill.
-- **The evidence rule is the whole difficulty.** A field with no verbatim
-  snippet is `null`, listed in `missing_evidence`, and the record is flagged
-  `REQUIRES_HUMAN_CONFIRMATION`. Absent is not the same as unquotable, and
-  substituting zero for the second once produced SGD 4,320.00 in place of
-  SGD 1,220.00.
-- **One JSON file per record** in `extracted/`, id-named. The image moves to
-  `processed/` and is never re-read.
-- Both artifacts, and a `shared_log.jsonl` line.
-- Follow `skills/deadline-watch/SKILL.md` for shape — same frontmatter rules,
-  same checklist, its own word budget in `tests/test_letter_triage.py`.
+- **Lift `_snippet_has_amount`, `_snippet_has_date` and `_snippet_has_issuer`
+  out of `letter_record.py`** and have `insurance_claim_review.py` import them,
+  the way `deadline_calendar.py` imports `audit_hash_of`. A second
+  implementation is a second answer that eventually disagrees; that is the whole
+  finding.
+- **Pin the reproduction from #14 as a test** before changing anything.
+- Expect the existing `insurance_claim_review.py` tests to need new fixtures:
+  snippets written to be present-and-nonblank now have to contain their values.
+- **Then findings #15 and #16**, both from the same run and both cheap: the
+  substitution ban is missing from `letter-triage`, and nothing tells an agent
+  that a value the gate refused must not be handed to the next script by hand.
+- **Re-run case G** — and case F, still owed from cycle B for finding #12.
+
+Every script on disk was frozen. #14 is the bug that unfreezes one of them.

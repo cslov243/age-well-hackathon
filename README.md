@@ -19,9 +19,13 @@ An expert plus three skills, in a single plugin:
   rules it does not break.
 - `skills/care-coordinator-toolkit/SKILL.md` — when and how to invoke each
   script, and what the toolkit refuses to do.
-- `skills/care-coordinator-toolkit/scripts/` — seven deterministic scripts.
+- `skills/care-coordinator-toolkit/scripts/` — eight deterministic scripts.
 - `skills/care-coordinator-toolkit/references/` — dated data snapshots,
   refreshed by a person and read from disk.
+- `skills/letter-triage/SKILL.md` — the entry point: a document arriving is
+  hashed, read once, and filed as one record per letter. The only skill where
+  the model itself is the instrument, and the only one gated on quoting what it
+  claims to have read.
 - `skills/medication-watch/SKILL.md` — the daily supply check and the pharmacy
   cart draft. Runs on a schedule and on request; ships no scripts of its own.
 - `skills/daily-brief/SKILL.md` — the 8am briefing. The one skill where **she is
@@ -62,10 +66,11 @@ reproduced months later. And the scheduled work costs almost nothing in tokens,
 because it is arithmetic over structured records rather than a model re-reading
 documents.
 
-## The seven scripts
+## The eight scripts
 
 | Script | What it computes |
 |---|---|
+| `letter_record.py` | A letter's identity from the bytes of its pages, and the evidence gate over the fields read off it: a value survives only when the snippet quoted for it contains it. |
 | `medication_runout.py` | Days of supply left, the last covered day, and the date to order by. |
 | `insurance_claim_review.py` | Submission and appeal windows, amounts outstanding or refundable, documents still to gather. |
 | `expense_split.py` | A shared care cost divided between family members, by weight or by ratio, with the residual cent accounted for. |
@@ -74,9 +79,10 @@ documents.
 | `pharmacy_cart.py` | A cart draft from a run-out forecast: what to buy, how much of it, and a total only when every line has a price. |
 | `deadline_calendar.py` | Dates already computed by the two scripts above, turned into calendar events and an `.ics` a person imports. It copies dates and computes none. |
 
-They take the same form, one of them with a further path of its own:
+They take the same form, two of them with a further path of their own:
 
 ```
+python3 scripts/letter_record.py --input <input.json> --records <extracted/> [--output <output.json>]
 python3 scripts/medication_runout.py --input <input.json> [--output <output.json>]
 python3 scripts/insurance_claim_review.py --input <input.json> [--output <output.json>]
 python3 scripts/expense_split.py --input <input.json> [--output <output.json>]
@@ -195,11 +201,11 @@ Not omissions, and not a roadmap.
 Named plainly, because a README that lists intentions as features is the same
 defect as a skill citing a script that was never written.
 
-- **Three of the six skills** — `letter-triage`, `scheme-radar`,
-  `family-dispatch` — are **not written**. What exists today is the expert, the
-  toolkit skill, `medication-watch`, `daily-brief`, `deadline-watch`, and the
-  seven scripts above. The toolkit is extended as each script lands, never ahead of
-  it.
+- **Two of the six skills** — `scheme-radar` and `family-dispatch` — are **not
+  written**. What exists today is the expert, the toolkit skill,
+  `letter-triage`, `medication-watch`, `daily-brief`, `deadline-watch`, and the
+  eight scripts above. The toolkit is extended as each script lands, never ahead
+  of it.
 - **`avatars/expert.png`** — a 1024×1024 PNG. The manifest already points at the
   path; the file is a human to-do and the test for it skips until it appears. It
   is left as a visible skip on purpose: a generated placeholder would pass
