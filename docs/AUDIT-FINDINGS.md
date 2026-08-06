@@ -1045,7 +1045,7 @@ rather than avoided.
 
 ---
 
-## 26. Enforcing the check gave the model a reason to delete a record — HIGH
+## 26. Enforcing the check gave the model a reason to delete a record — FIXED
 
 Found 6 August 2026, cycle P, on the first cold run after finding #25's fix.
 The precondition worked: `check` ran first and `record` carried its
@@ -1095,5 +1095,133 @@ hash and read the error. Then ask what the shortest path past it is.
 `confirmations.py`, so #22's merge did not happen here — the artifacts say
 nothing about confirmation, which is the correct fallback rather than a false
 certification, but it is not evidence that #22 holds.
+
+**Fixed 6 August 2026, cycle Q** — the second option, plus the third stated
+where it binds.
+
+**The already-filed case stopped being an error.** The hash is still required on
+every `record` call, because a caller cannot know a letter is filed until it
+asks. The *comparison* is now scoped to the case where a record would actually
+be written: once the letter is on disk this call writes nothing whatever the
+hash says, so refusing it bought no protection and cost the deletion. A second
+`record` call now returns the idempotent answer it was always supposed to give —
+`already_extracted: true`, `should_extract: false`, `record: null`, and
+`existing_record_path` naming what stands — and its `summary` says *this run is
+finished, not blocked: quote that record and the audit_hash inside it.* There is
+no longer anything to route around, which is a stronger guarantee than a rule
+against routing around it. Pinned by `AnAlreadyFiledLetterIsAFinishedRun` in
+`tests/test_letter_record.py`, including that an unfiled letter still refuses a
+wrong hash — #25 must survive #26's fix.
+
+**The refusal that remains no longer mentions a filing at all**, since the filed
+case never reaches it. A genuine mismatch is only ever about the bytes, the
+`as_of` or the records directory, and the message now closes the door the old
+one opened: *nothing in `extracted/` is in your way here and nothing there may
+be moved or deleted to get past this.* A test asserts the word "filed" is absent
+from it, because that word is what handed cycle P the idea.
+
+**And the prohibition is named in `agents/care-navigator.md`**, the normative
+copy. "No irreversible action without confirmation" already listed deleting and
+was not enough — deleting a record did not read as an action *on her*, it read
+as clearing an obstacle. The directories are now named, along with the sentence
+that addresses the reasoning actually followed: a script refusing you is never
+an invitation to remove what it objected to.
+
+`docs/CONTRACTS.md` changed, and the change is a **narrowing** of a refusal
+added three days earlier, not a new requirement — flagged rather than made
+quietly.
+
+**The lesson, again.** #16, #22 and #25 all closed when the answer moved out of
+prose and into a script. This one closed by taking an error away: the pressure
+was not created by a missing rule, it was created by a refusal with no
+completion path behind it. When a script says no, check what it leaves the
+caller able to do next.
+
+---
+
+## 27. Her copy spelled a script's figure out, and got it wrong — HIGH
+
+Found 6 August 2026, cycle Q, case G. Archived at
+`evals/runs/2026-08-06-cycle-Q/workspace/out/senior/`.
+
+The letter says `Total amount billed          SGD 1,220.00`. The record quotes
+that snippet. `insurance_claim_review.py` returns `"billed": "1220.00"`. The
+family CSV prints `SGD 1220.00`. The artifact written for the senior says:
+
+```
+The clinic billed two thousand two hundred and twenty dollars.
+```
+
+**A thousand dollars wrong, in the one artifact meant to be read aloud to the
+person who cannot check it against the letter.** The two figures below it —
+eight hundred and sixty, three hundred and sixty — are both correct, which is
+worse: the error is not a systematic misreading, it is a single retyping, and
+the surrounding accuracy is what makes it credible.
+
+**Why the existing rules did not catch it.** "Never compute a number in prose"
+was obeyed exactly: nothing was computed. The figure was *re-expressed* — digits
+to words, for a read-aloud script, which is a reasonable thing to want. The
+split of labour has no rule about re-expression, because until now every rule
+has been about where a number comes from, never about what a prose artifact may
+do to one after a script produced it. A transcription is not a calculation and
+slipped straight through.
+
+**It is also invisible to the family.** The family artifact is correct. A
+caregiver reading it would sign off on a run whose senior artifact is wrong, and
+the two are never compared — nothing reads both. Every previously measured
+defect appeared in the family copy or in both.
+
+**Reproduce:** run case G and diff every figure in `out/senior/` against the
+`amounts` of the record and the claim review. Do it by eye — no test reads
+English, which is the whole reason this class of defect keeps landing here.
+
+**Fix, provisionally.**
+
+- **A figure in her copy is quoted in digits, in the form the script printed
+  it**, with the words beside it rather than instead of it: *SGD 1,220.00 — one
+  thousand two hundred and twenty dollars*. A read-aloud script still reads, and
+  the digits stay checkable against the letter.
+- **Or a script emits the spoken form**, so the words are produced rather than
+  typed. That is the split of labour's own answer and it is more work: money to
+  words is exactly the kind of thing that looks trivial and is not, and it would
+  have to be a tenth script.
+- **Or the two artifacts are diffed by a script before either is written** —
+  every figure in one must appear in the other. That catches this class rather
+  than this instance, and it needs both artifacts to exist first, which changes
+  the order of the checklist.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 28. Nothing says where a review output goes, so it went into `extracted/` — MEDIUM
+
+Found 6 August 2026, cycle Q, case G.
+
+```
+extracted/letter-cf7a35500ef237c1.json    the record
+extracted/claim-review.json               insurance_claim_review.py --output
+```
+
+`extracted/` is **one id-named JSON per record** (`CLAUDE.md`, workspace
+layout). A claim review is not a record; it is a result computed from one.
+
+**No damage this run, and the reason is worth stating.** `_scan_records` read
+both files, matched neither against the incoming `content_hash` except the real
+one, and reported `records_scanned: 2` with no `records_unreadable`. Dedupe is
+keyed on content, not on filenames, so a stray file is inert. It would stop
+being inert the day a review output happened to be named `letter-*.json`.
+
+**The cause is an omission, not a mistake.** `--output` is documented as
+optional on every script and no skill file says where any output belongs. The
+agent had to put it somewhere, and `extracted/` was the only workspace directory
+it had already been told to write to. `out/family/` is for artifacts a person
+reads, and there is no named home for an intermediate result.
+
+**This is the same gap as [#23](#23-the-run-quotes-hashes-nothing-in-the-workspace-reproduces)
+seen from the other side.** #23 is that inputs go to `/tmp` and vanish; this is
+that outputs land wherever. Both are one decision: whether a run's script I/O
+has a directory of its own, and whether `--output` stays optional. That decision
+changes `docs/CONTRACTS.md` — **stop and flag it** before making it.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.

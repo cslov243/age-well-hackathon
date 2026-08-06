@@ -214,16 +214,119 @@ class TheCheckCallIsNotOptional(unittest.TestCase):
         document = request([self.page], check_audit_hash=printed)
         self.assertIsNotNone(self.build(document)["record"])
 
-    def test_it_still_refuses_when_the_letter_is_already_filed(self):
-        # already_extracted is inside the check hash, so a hash taken before
-        # the first filing does not license a second one afterwards.
+
+class AnAlreadyFiledLetterIsAFinishedRun(unittest.TestCase):
+    """Audit finding #26 — the trap finding #25's fix built.
+
+    `already_extracted` sits inside the check hash on purpose: a hash taken
+    before a filing must not license a second filing afterwards. But the
+    first version of that precondition raised on the mismatch, so a second
+    `record` call on a letter already on disk hit a refusal saying the letter
+    "has been filed since that check ran". A cold agent read it, concluded the
+    only way through was to unfile the letter, and ran `rm` on the record.
+
+    Skipping the check costs a duplicate record. Deleting a record destroys
+    the only evidence the letter was ever read, its `audit_hash`, and the
+    disclosure trail hanging off it — and it is an irreversible action taken
+    without a human, which is a hard constraint in its own right.
+
+    So the already-filed case stops being an error. It is the idempotent
+    answer this script was always supposed to give: nothing is written, the
+    existing record stands, and the caller is told the run is finished rather
+    than blocked. There is nothing left to route around, which is a stronger
+    guarantee than telling the model not to route around it.
+    """
+
+    def setUp(self):
+        self.stack = __import__("contextlib").ExitStack()
+        self.addCleanup(self.stack.close)
+        self.ws = Workspace(self.stack)
+        self.page = self.ws.page("letter.jpg")
         first = request([self.page])
         first["check_audit_hash"] = check_audit_hash([self.page],
                                                      self.ws.records)
-        self.build(first)
+        self.filed = build_record(first, self.ws.records)
+        self.stale = first
+
+    def build(self, document):
+        return build_record(document, self.ws.records)
+
+    def test_a_second_call_answers_instead_of_refusing(self):
+        # The stale hash is exactly what cycle P held: taken before the
+        # filing, recomputing differently after it.
+        result = self.build(self.stale)
+        self.assertTrue(result["already_extracted"])
+        self.assertFalse(result["should_extract"])
+        self.assertIsNone(result["record"])
+
+    def test_it_names_the_record_that_already_exists(self):
+        # Without this the caller has an answer it cannot act on, and looking
+        # for the record by hand is how the records directory gets edited.
+        result = self.build(self.stale)
+        self.assertEqual(result["existing_record_path"],
+                         self.filed["record_path"])
+        self.assertTrue(Path(result["existing_record_path"]).is_file())
+
+    def test_the_second_call_writes_nothing_at_all(self):
+        before = {path.name: path.read_bytes()
+                  for path in self.ws.records.iterdir()}
+        result = self.build(self.stale)
+        after = {path.name: path.read_bytes()
+                 for path in self.ws.records.iterdir()}
+        self.assertEqual(before, after)
+        self.assertIsNone(result["record_path"])
+
+    def test_a_check_hash_taken_after_the_filing_gets_the_same_answer(self):
+        # Both an agent that checked before filing and one that checked after
+        # must land on the same finished answer, or the second learns that
+        # re-checking changes the outcome.
+        fresh = dict(self.stale)
+        fresh["check_audit_hash"] = check_audit_hash([self.page],
+                                                     self.ws.records)
+        self.assertFalse(self.build(fresh)["should_extract"])
+
+    def test_the_hash_is_still_required_when_the_letter_is_filed(self):
+        # The caller cannot know it is filed until it asks, so dropping the
+        # requirement here would let any record call skip the check and find
+        # out afterwards whether it got away with it.
+        without = {k: v for k, v in self.stale.items()
+                   if k != "check_audit_hash"}
         with self.assertRaises(InvalidInput) as ctx:
-            self.build(first)
+            self.build(without)
+        self.assertIn("check_audit_hash", str(ctx.exception))
+
+    def test_the_prose_says_the_run_is_finished_not_blocked(self):
+        summary = self.build(self.stale)["summary"].lower()
+        self.assertIn("already extracted", summary)
+        self.assertIn("finished", summary)
+
+    def test_the_prose_rules_out_deleting_the_record(self):
+        summary = self.build(self.stale)["summary"].lower()
+        self.assertIn("delete", summary)
+
+    def test_an_unfiled_letter_still_refuses_a_wrong_hash(self):
+        # Finding #25 must survive #26's fix. Forgiveness is scoped to the
+        # case where nothing would be written either way.
+        other = self.ws.page("other.jpg", OTHER)
+        document = request([other], check_audit_hash="sha256:" + "0" * 64)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(document)
         self.assertIn("does not match", str(ctx.exception))
+
+    def test_the_mismatch_refusal_no_longer_blames_a_filing(self):
+        # The sentence that handed cycle P the idea. A genuine mismatch is now
+        # only ever about the bytes, the date or the directory, because the
+        # filed case never reaches this refusal.
+        other = self.ws.page("other.jpg", OTHER)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(request([other], check_audit_hash="sha256:" + "0" * 64))
+        self.assertNotIn("filed", str(ctx.exception).lower())
+
+    def test_the_mismatch_refusal_rules_out_deleting_a_record(self):
+        other = self.ws.page("other.jpg", OTHER)
+        with self.assertRaises(InvalidInput) as ctx:
+            self.build(request([other], check_audit_hash="sha256:" + "0" * 64))
+        self.assertIn("delete", str(ctx.exception).lower())
 
 
 class ScriptShapeTests(unittest.TestCase):

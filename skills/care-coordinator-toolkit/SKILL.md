@@ -71,6 +71,14 @@ made the call. This is a precondition rather than an instruction because the
 instruction was skipped: audit finding #25. If it refuses, run `check` again on
 exactly those `source_files` and read `should_extract` before anything else.
 
+**A letter already filed is answered, not refused.** The call returns
+`already_extracted: true` and `should_extract: false`, writes nothing, and names
+the record that stands in `existing_record_path`. That is a finished run, not a
+blocked one — quote that record and carry on. **Nothing in `extracted/` may be
+deleted or moved to file a letter again**, whatever a refusal seems to invite: a
+record is the only evidence a letter was ever read, and deleting one is an
+irreversible act taken without a person.
+
 **Requires in `record` mode:** `doc_type`, `evidence`, and every key of `fields`
 — `issuer`, `issue_date`, `deadline`, `amounts`, `required_action` — present
 even when the value is `null`. A field the letter never mentioned and a field

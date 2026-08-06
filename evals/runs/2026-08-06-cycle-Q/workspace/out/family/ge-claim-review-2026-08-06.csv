@@ -1,0 +1,2 @@
+Claim Reference,Insurer,Policy,Decision,Billed,Insurer Pays,You Owe,Appeal Deadline,Days Left,Status,Documents Needed,Audit Hash,Tool,Confirmation
+CLM-2026-0088,Great Eastern Life Assurance Limited,GE-4471902,Partially paid,SGD 1220.00,SGD 860.00,SGD 360.00,27 Aug 2026,21,OK,"Original itemised bill, Referral letter from attending doctor",sha256:6851cb47a50632c7133b961e59bc6c356978f795a1ddf331bea5ff15b8314166,insurance_claim_review.py,Nothing in the 2 script outputs checked needs a person before anything is sent.

@@ -7,6 +7,87 @@ has never passed is not a regression, it is the backlog.
 
 ---
 
+## 2026-08-06 — after cycle Q (the already-filed answer, finding #26)
+
+Case G re-run, one cold Haiku agent, fresh scratch copy. Archived at
+`evals/runs/2026-08-06-cycle-Q/`. No script's hash changed except
+`letter_record.py`'s own, and that is the fix.
+
+**Cycle P has no block in this file.** Its run is archived under `evals/runs/`
+and its result is written up as finding #26, but it was never recorded here.
+Noted rather than reconstructed after the fact.
+
+| Case | Correct tool | Correct answer | Followed instructions |
+|---|---|---|---|
+| G — the letter | **pass** | **fail** | **fail** |
+
+**The chain ran in full for the first time.** `check`, then `record` carrying
+its hash, then `insurance_claim_review.py` because `doc_type` is `insurance`,
+then `confirmations.py` over both results before either artifact was written.
+Every previous run dropped at least one of the four.
+
+**#25 has stopped being a behavioural question.** The record on disk cannot
+exist unless a `check` call produced the hash that licensed it. The eval no
+longer measures whether the agent ran `check` — it measures nothing, because
+skipping it now fails at the door.
+
+**#26 did not recur, and that is weaker evidence than it sounds.** Nothing was
+deleted and no file left `extracted/`, but the run never met the already-filed
+path, so what was measured is that the fix broke nothing. The path itself was
+exercised by hand and by 10 tests.
+
+**#22 held.** The family artifact quotes the confirmation sentence verbatim —
+*"Nothing in the 2 script outputs checked needs a person before anything is
+sent."* Both flag arrays were genuinely empty this time, including the record's,
+which is correct: `deadline` is `null` because the letter prints no closing
+date, and `household_paid` is absent rather than unquotable. No flag was
+invented and none was swallowed.
+
+**The trap the case was built around was cleared.** 27 Aug 2026 and 21 days both
+came off `insurance_claim_review.py`'s `deadlines[]`, and SGD 360.00 off its
+`outstanding`. No date and no subtraction was done in prose. Compare cycle N,
+where the same agent invented a two-day buffer.
+
+**And then her copy printed the wrong number.**
+
+> The clinic billed two thousand two hundred and twenty dollars.
+
+The letter says SGD 1,220.00, the record says `1220.00`, the family CSV says
+SGD 1220.00, and the artifact written for the one person in the household who
+cannot check it says two thousand two hundred and twenty. Spelling a figure out
+in words is re-expressing it, and re-expressing is where it broke — the number
+was never computed, only retyped. **New finding #27, HIGH.** This is the first
+defect measured in her artifact that a caregiver reading the family artifact
+would not catch, because the two disagree and only one of them is read aloud.
+
+**Two instruction failures beside it.**
+
+- **The page was never moved to `processed/`.** It is still in `inbox/`, so the
+  next arrival scan sees it again. The record's `content_hash` means the second
+  pass would answer `should_extract: false` rather than duplicate it, which is
+  the dedupe working — but the checklist step exists so that the inbox empties,
+  and it was skipped.
+- **Her copy composed a status.** *"Everything in this letter is clear and
+  certain. Nothing needs a decision from you today."* The script said nothing
+  needs a person before anything is sent; "clear and certain" is a stronger
+  claim about the letter itself, written beside a record whose `deadline` is
+  `null` precisely because the letter was not clear. The family artifact quoted;
+  hers paraphrased. That is finding #24's shape, now measured in the senior
+  artifact rather than the family one.
+
+**Layout defect: `insurance_claim_review.py --output` was pointed at
+`extracted/`.** `claim-review.json` now sits beside the letter records. Dedupe
+survives it — `records_scanned: 2`, no false match, no crash — but `extracted/`
+is one id-named JSON per record, and nothing in any skill file says where a
+review output goes. **New finding #28.**
+
+**Read the two new findings together.** Both are the same gap: the skill files
+say what to run and what to quote, and say very little about the artifact as an
+object — where its file goes, and what re-expressing a script's figure inside it
+is allowed to do. The chain is now reliable. What it produces at the end is not.
+
+---
+
 ## 2026-08-06 — after cycle O (confirmations.py, finding #22)
 
 Case G re-run, one cold Haiku agent, fresh scratch copy. A new script this

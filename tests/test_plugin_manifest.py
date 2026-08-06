@@ -356,6 +356,26 @@ class AgentBodyTests(unittest.TestCase):
     def test_disclosure_log_path(self):
         self.assertIn("out/senior/shared_log.jsonl", self.body)
 
+    def test_nothing_in_the_workspace_may_be_deleted(self):
+        # Finding #26, measured in the cycle P case G run. "No irreversible
+        # action without confirmation" listed deleting among its examples and
+        # the agent still ran `rm` on a filed record, because the thing it was
+        # deleting did not read as an action *on her* — it read as clearing an
+        # obstacle. The named directories close that reading.
+        for name in ("extracted/", "processed/", "out/"):
+            with self.subTest(directory=name):
+                self.assertIn(name, self.body)
+        self.assertIn("delete", self.lower)
+        for term in ("refusing you is never", "refusal is never",
+                     "never an invitation"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "the body forbids deletion but never says a script's refusal "
+                "is not an invitation to remove what it objected to. That is "
+                "the reasoning the run actually followed.")
+
     def test_addresses_the_senior_directly(self):
         self.assertIn("third person", self.lower)
 

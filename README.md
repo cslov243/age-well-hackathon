@@ -138,7 +138,7 @@ From the repo root:
 python3 -m unittest discover -s tests
 ```
 
-That runs 861 tests in about eleven seconds, with one skip — the avatar file
+That runs 871 tests in about twelve seconds, with one skip — the avatar file
 below, which turns green by itself once a human supplies it.
 
 Everything is runnable from a command line on any machine with Python 3. That is

@@ -351,7 +351,11 @@ def _summary(mode, record, gate, already, existing, unreadable, pages):
         parts.append(
             f"This document is already extracted — {page_count} hashing to a "
             f"record filed at {existing}. Nothing was written and nothing was "
-            f"re-read.")
+            f"re-read. This run is finished, not blocked: quote that record "
+            f"and the audit_hash inside it. Do not delete or move it to file "
+            f"the letter again — it is the only evidence the letter was ever "
+            f"read, and re-filing would compete with it rather than correct "
+            f"it.")
     elif mode == "check":
         parts.append(
             f"{page_count} not seen before. Extract it, then file it with "
@@ -397,7 +401,7 @@ def _summary(mode, record, gate, already, existing, unreadable, pages):
 # entry point
 # --------------------------------------------------------------------------
 
-def _require_the_check_that_came_first(document, records_dir, as_of):
+def _require_the_check_that_came_first(document, records_dir, as_of, already):
     """Refuse a `record` call that no `check` call preceded.
 
     Audit finding #25. `check` before extraction is the idempotency
@@ -414,6 +418,15 @@ def _require_the_check_that_came_first(document, records_dir, as_of):
     and compares. A value cannot be produced without having made the call —
     which is the only version of "do this first" that survives a model
     having a bad day.
+
+    Audit finding #26 scoped it. The hash is demanded of every `record` call,
+    because a caller cannot know a letter is already filed until it asks. But
+    the comparison only binds when a record would actually be written. Once
+    the letter is on disk this call writes nothing whatever the hash says, so
+    refusing it added no protection and cost a great deal: the refusal named
+    the filing as the cause, and a cold agent read that as an instruction to
+    unfile the letter. An already-filed letter falls through to the idempotent
+    answer — nothing written, the existing record standing, the run finished.
     """
     if "check_audit_hash" not in document:
         raise InvalidInput(
@@ -425,6 +438,9 @@ def _require_the_check_that_came_first(document, records_dir, as_of):
             "no evidence the pages were ever asked about, and a second "
             "extraction of the same letter files a competing record")
 
+    if already:
+        return
+
     expected = audit_hash_of(build_record(
         {"as_of": as_of.isoformat(), "mode": "check",
          "source_files": document["source_files"]},
@@ -433,11 +449,13 @@ def _require_the_check_that_came_first(document, records_dir, as_of):
     if supplied != expected:
         raise InvalidInput(
             f"check_audit_hash does not match a check of these pages "
-            f"(supplied {supplied}, recomputed {expected}). Either it came "
-            f"from a check of different bytes, a different as_of or a "
-            f"different records directory, or the letter has been filed since "
-            f"that check ran. Run check again on exactly these source_files "
-            f"and use the audit_hash it prints")
+            f"(supplied {supplied}, recomputed {expected}). It came from a "
+            f"check of different bytes, a different as_of, or a different "
+            f"records directory. Run check again on exactly these "
+            f"source_files and use the audit_hash it prints. Nothing in "
+            f"extracted/ is in your way here and nothing there may be moved "
+            f"or deleted to get past this: a record in that directory is the "
+            f"only evidence a letter was ever read")
 
 
 def build_record(document, records_dir):
@@ -469,6 +487,12 @@ def build_record(document, records_dir):
             "made of, in page order")
     pages, content_hash = _hash_pages(document["source_files"])
 
+    # Scanned before the mode branch rather than after it, because whether
+    # this letter is already filed decides what the record-mode precondition
+    # has to enforce — see finding #26.
+    existing, unreadable, scanned = _scan_records(records_dir, content_hash)
+    already = existing is not None
+
     supplied = [key for key in EXTRACTION_KEYS if key in document]
     if mode == "check":
         if "check_audit_hash" in document:
@@ -489,10 +513,9 @@ def build_record(document, records_dir):
                     f"{key} is required in mode 'record'. Filing an extraction "
                     f"without it would write a record shaped like a letter "
                     f"nobody read")
-        _require_the_check_that_came_first(document, records_dir, as_of)
+        _require_the_check_that_came_first(document, records_dir, as_of,
+                                           already)
 
-    existing, unreadable, scanned = _scan_records(records_dir, content_hash)
-    already = existing is not None
     record_id = "letter-" + content_hash.split(":", 1)[1][:16]
 
     gate = Gate({})

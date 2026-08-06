@@ -90,8 +90,20 @@ runs after it.
 for audit finding #25, and it is a **breaking change** to this script's input.
 The value is not trusted: `record` recomputes the check over the same bytes,
 the same `as_of` and the same records directory, and refuses a mismatch. A hash
-from a different letter, a different day, or a check taken before the letter was
-filed is therefore refused too, since `already_extracted` is inside it.
+from a different letter or a different day is therefore refused too.
+
+**The comparison is scoped to the case where a record would be written.**
+Narrowed 6 August 2026 for audit finding #26. `already_extracted` is inside the
+check hash, so a hash taken before a filing recomputes differently afterwards —
+and the first version of this precondition refused on that, saying the letter
+"has been filed since that check ran". A cold agent read that as the one move
+left and deleted the record. The hash is still **required** on every `record`
+call, because a caller cannot know a letter is filed until it asks. But once it
+is filed nothing is written whatever the hash says, so the call returns the
+idempotent answer instead of refusing: `already_extracted: true`,
+`should_extract: false`, `record: null`, `record_path: null`, and
+`existing_record_path` naming what stands. The `summary` says the run is
+finished rather than blocked, and says not to delete or move the record.
 
 Ordering was documented in three places and pinned by two tests on the skill
 file, and a cold agent skipped it anyway and filed a record for a letter it had

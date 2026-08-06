@@ -147,49 +147,55 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle P: the regression, then the half-quoted ask
+## Start here — cycle R: the figure in her copy
 
-**Cycle O built the ninth script.** `confirmations.py` merges the flags from
-every result a run produced and answers one question — does this need a person —
-which nothing had owned before. **#22 and #16 both closed on the first
-measurement**, and #16 had survived three cycles of being told to report the
-flag. Moving the answer out of prose and into a script did in one run what three
-rules could not. That is the lesson to carry, not the script.
+**Cycles P and Q closed the `check` question for good.** `record` mode now
+refuses without the `check` run's `audit_hash` and recomputes it rather than
+trusting it, so skipping the call fails at the door instead of being discouraged
+(#25). Cycle Q then had to undo the trap that built: refusing the *already
+filed* case handed a cold agent one move, and it deleted the record (#26). The
+comparison is now scoped to the case where a record would be written, and a
+filed letter gets the idempotent answer — nothing written, the run finished.
 
-**It also cost a regression.** Read the cycle O block in `evals/RESULTS.md`
-before picking anything.
+**Two lessons, and the second is newer than the first.** Moving an answer out of
+prose into a script closed #16, #22 and #25. Taking an error *away* closed #26:
+the pressure was never a missing rule, it was a refusal with no completion path
+behind it. When a script says no, look at what it leaves the caller able to do.
 
-- **#25 — the `check` call before extraction was skipped.** **Take this first.**
-  It passed in cycles L, M and N and failed here, and it is the idempotency
-  guarantee: without it a re-scanned letter files a second competing record and
-  duplicates every deadline. The instruction did not move — the chain grew a
-  fourth script and the checklist grew to six steps, and step 1 still folds
-  check, read and file into one line that reads as one action. Split it. That
-  costs words in a file with none spare, and the words should be paid.
-- **#24 — the sentence is quoted and the ask beside it is paraphrased.** The
-  artifact quoted `sentence` verbatim and rewrote `items[].ask` into a different
-  task: the script said read the letter's wording, the artifact said verify the
-  arithmetic. It also printed `30 days from 28 July = 27 August`, a derivation in
-  prose beside a script's date. Consider quoting `ask` rather than `sentence`.
-- **#21's remaining half — the offer, not the ban.** Two cycles now: her copy
-  does not attribute the balance to the letter and has never said it was worked
-  out from the page. Make the positive form the default, and put it where it
-  binds both artifacts.
-- **#23 — the run quotes hashes nothing in the workspace reproduces.** All three
-  inputs went to `/tmp` again and neither the claim review nor the confirmation
-  set was written with `--output`. Whether `--output` stops being optional is a
-  `docs/CONTRACTS.md` change — **stop and flag it**.
+**The chain is now reliable and the artifacts are not.** Cycle Q ran all four
+scripts in order for the first time, invented no date and no subtraction — and
+wrote the wrong amount in the senior's copy. Read the cycle Q block in
+`evals/RESULTS.md` before picking anything.
+
+- **#27 — her copy spelled SGD 1,220.00 out as "two thousand two hundred and
+  twenty dollars". Take this first.** It is HIGH, it is in the artifact for the
+  primary user, and it is the first measured defect a caregiver reading the
+  family artifact would not catch — the two disagree and nothing compares them.
+  No rule was broken: nothing was *computed*, a figure was **re-expressed**, and
+  the split of labour has never said anything about what prose may do to a
+  number after a script produced it. Digits beside the words is the cheapest
+  fix; a script that emits the spoken form is the one that matches the design.
+- **#24 — the ask is quoted as a sentence and paraphrased as a task**, and in
+  cycle Q her copy composed a status of its own: *"everything in this letter is
+  clear and certain"*, beside a record whose `deadline` is `null` because it was
+  not. Consider quoting `items[].ask` rather than `sentence`.
+- **#21's remaining half — the offer, not the ban.** Three cycles now: her copy
+  still does not say the balance was worked out from the page.
+- **#23 and #28 are one decision, not two.** Inputs went to `/dev/stdin` this
+  time and nothing survived the run at all, and the claim review's `--output`
+  landed in `extracted/` because no skill file says where a result goes. Whether
+  `--output` stops being optional and whether a run gets a directory of its own
+  is a `docs/CONTRACTS.md` change — **stop and flag it**.
 - **#19 — the unknown-key hole one level up** in `insurance_claim_review.py`.
-  Two lines, the helper exists. `confirmations.py` was written with this check
-  from the start; the older script still lacks it.
+  Two lines, the helper exists.
 - **#18 — `deadline-watch` has neither half of the language rule**, and no eval
   case has ever reached its senior copy.
 - **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
   canonical: `household/profile.json` or `out/household_profile.json`.
 
-**Then re-run case G and read the artifacts.** Every defect in this case for
-five cycles has been invisible in the JSON and plain in the prose. **Also count
-the `letter_record.py` invocations** — that is the check that would have caught
-#25 the moment it happened.
+**Then re-run case G and read the artifacts — both of them, side by side.**
+Every defect in this case for six cycles has been invisible in the JSON and
+plain in the prose, and #27 was invisible in the family copy too. **Diff every
+figure in `out/senior/` against the record and the claim review by eye.**
 
 Every script on disk is frozen except for #19's one check.

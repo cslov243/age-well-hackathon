@@ -25,12 +25,13 @@ confirmations.py          --input <confirm_input.json>
 
 `mode` has no default. `"check"` hands over `source_files` alone and answers
 whether these bytes are already filed. **`should_extract: false` means stop** —
-a second reading buys a record that competes with the first rather than
-correcting it. Do not open the image before that answer comes back.
+a second reading files a record that competes with the first.
 
 `"record"` then takes what you read, **and the check run's `audit_hash` as
-`check_audit_hash`** — it recomputes the check and refuses a mismatch, so there
-is no filing a letter nobody asked about. `doc_type` is one of the seven in
+`check_audit_hash`** — it recomputes the check and refuses a mismatch. A letter
+already filed is answered, not refused: nothing is written and the run is
+finished. **Never delete or move a record in `extracted/`.** `doc_type` is one
+of the seven in
 `conventions.doc_types`; an unrecognised letter is `other`, never the nearest
 match. Every key of `fields` is required — `issuer`, `issue_date`, `deadline`,
 `amounts`, `required_action` — **`null` where the letter never said it.** When
