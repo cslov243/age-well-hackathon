@@ -45,7 +45,13 @@ CHAIN = ("letter_record.py", "insurance_claim_review.py")
 # Set at the measured value on 6 Aug 2026. It sits above deadline-watch because
 # this is the only skill that runs a script, then the model, then the same
 # script again, and the ordering is the thing being taught.
-WORD_BUDGET = 1000
+#
+# Re-pointed 1000 -> 991 the same day, cycle L. The file gained the language
+# rules and the refused-value rule and still came out smaller, because the
+# budget forced the question of what the older prose was earning. The SGD
+# 4,320.00 anecdote went: cycle K made that rule a check in code, so the file
+# no longer has to argue for it.
+WORD_BUDGET = 991
 
 
 def body():
@@ -201,6 +207,27 @@ class EvidenceTests(unittest.TestCase):
         self.assertIn("split", self.lower)
         self.assertIn("merge", self.lower)
 
+    def test_a_refused_value_may_not_be_carried_forward(self):
+        # Measured failure, eval case G, cycles J and K. The gate nulled two
+        # fields; the agent kept the figures it had computed and hand-fed them
+        # to the next script, and all three artifacts reported them as settled.
+        # The file already says a flagged record is a correct outcome — that is
+        # a headed bullet and it was ignored twice, so this is not finding #10.
+        # What it never said is that the refusal belongs to the *number*, not
+        # to the record: a refused value goes into no input, artifact or answer.
+        for term in ("refused", "refuses", "refusal"):
+            if term in self.lower:
+                break
+        else:
+            self.fail("nothing in the prose names a refused value")
+        for term in ("carry", "carried", "carrying", "hand-feed", "by hand"):
+            if term in self.lower:
+                break
+        else:
+            self.fail(
+                "the prose never forbids carrying a refused value forward. "
+                "A rule about the record is not a rule about the number.")
+
 
 class BothArtifactsTests(unittest.TestCase):
 
@@ -234,6 +261,42 @@ class BothArtifactsTests(unittest.TestCase):
 
     def test_it_addresses_her_directly(self):
         self.assertIn("second person", self.body.lower())
+
+    def test_it_forbids_substituting_a_near_enough_language(self):
+        # Measured failure, eval case G, cycle J: the profile said `hokkien`
+        # and her copy came out as written Chinese. `daily-brief` and
+        # `deadline-watch` both carry this ban; the file that ran did not, and
+        # that is the whole of finding #15's first half.
+        lower = prose_only(self.body).lower()
+        self.assertIn("hokkien", lower)
+        for term in ("substitut", "near-enough", "nearest"):
+            if term in lower:
+                break
+        else:
+            self.fail("nothing in the prose forbids a near-enough language")
+
+    def test_a_read_aloud_script_is_labelled_with_the_language_on_the_page(self):
+        # Narrowed 6 Aug 2026 by the cycle K re-run, which produced English
+        # headed "(Read-aloud script for Hokkien speaker)". No substitution —
+        # but the label names the language she *speaks*, and a household that
+        # reads `en` and `zh` cannot tell from it which one it was handed.
+        lower = prose_only(self.body).lower()
+        self.assertIn("read-aloud", lower)
+        for term in ("written in", "language of the page", "label it with"):
+            if term in lower:
+                break
+        else:
+            self.fail(
+                "the read-aloud fallback is not required to name the language "
+                "it is actually written in")
+
+    def test_the_checklist_carries_the_flag_into_her_copy(self):
+        # The flag reached neither artifact in two consecutive runs. A step
+        # that only says "write the artifact" is a step that wrote both of
+        # them, correctly, with the refusal missing from each.
+        lower = self.checklist.lower()
+        self.assertIn("flag", lower)
+        self.assertIn("confirm", lower)
 
     def test_a_condition_is_never_inferred_from_a_letter(self):
         # Measured failure, eval case D, 6 Aug 2026: "your blood pressure

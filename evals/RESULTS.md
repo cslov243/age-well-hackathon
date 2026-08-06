@@ -7,6 +7,71 @@ has never passed is not a regression, it is the backlog.
 
 ---
 
+## 2026-08-06 — after cycle L (the two prose findings in `letter-triage`)
+
+Case G re-run, one cold Haiku agent, against a scratch copy.
+
+| Case | Correct tool | Correct answer | Followed instructions |
+|---|---|---|---|
+| G — the letter | pass | **fail** | **fail** |
+
+**Worse than cycle K on two axes, and the cycle was not a regression in the
+code.** No script changed. What changed is that a different cold agent walked
+into a different trap, and the run is worth more than the pass would have been.
+
+**Finding #15 is fixed, and this is the measurement.** Her copy opens:
+
+```
+READ-ALOUD SCRIPT FOR AH KIM
+Insurance Claim Letter from Great Eastern Life
+Written in English
+```
+
+Three runs of this case have now produced three different headers — written
+Chinese labelled Hokkien (cycle J), English labelled *"for Hokkien speaker"*
+(cycle K), and the language of the page stated plainly (cycle L). The rule
+added this cycle is the only thing that changed between the last two.
+
+**Finding #16 is not fixed, and I closed it before measuring.** The rule went in
+hours earlier: *a value the script refused goes into no artifact and no answer.*
+Her copy says **"if we do the math, it would be 360 dollars"**, and the
+caregiver's answer says *"We calculate it would be SGD 360.00, but I cannot
+quote that figure from the letter itself."* The model stated the constraint and
+broke it inside the same sentence — the same shape as case F quoting *"a
+complete run, not a backup plan"* while declining to do the run.
+
+**The reporting half did land, in one artifact of two.** The family CSV carries
+`Household Owes | Not Stated | ... | Flagged: REQUIRES_HUMAN_CONFIRMATION`, and
+`shared_log.jsonl` carries a `flags` array. Two previous runs dropped the flag
+from everything. The checklist change earned that. Her copy — the one that is
+prose rather than a table with a `Status` column — is where it failed again.
+
+**The tool axis passed cleanly.** `check` before the letter was opened, then
+`record`, then `insurance_claim_review.py`; the page moved to `processed/` only
+after the record existed; both artifacts and the disclosure line written. The
+family CSV quotes `audit_hash` `sha256:de1646f2…`, which is the real
+`letter_record.py` hash, and the claim review **replays exactly** at
+`sha256:e155e512…`.
+
+**The answer axis failed on the third trap, in the opposite direction to cycle
+K.** The claim payload set `household_paid: "360.00"` — a figure that is not on
+the page, with no snippet offered for it. The gate refused it, so `outstanding`
+came back `null` where the expected output has `360.00`. Cycle K's agent left
+`household_paid` null and the script produced the balance; this one asserted a
+number the letter never gave and then supplied it by hand when the script would
+not. **Same trap, opposite error, and the evidence gate caught both.**
+
+Two smaller misses: the record's `amounts` array holds only `860.00`, dropping
+the billed `1,220.00` that the agent quoted correctly everywhere else; and the
+CSV labels the appeal deadline *"Calculated - 30 days from letter date"* when
+that date did come from the script, understating its own provenance.
+
+**No new finding from the feedback section**, which asked for JSON schemas the
+skill file deliberately defers to `docs/CONTRACTS.md`. Treated as a lead. The
+one real defect this run confirmed is #16, reopened.
+
+---
+
 ## 2026-08-06 — after cycle K (`_evidence.py`, one gate not two)
 
 Cases G and F re-run, one cold Haiku agent each, against scratch copies.

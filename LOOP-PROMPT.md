@@ -147,40 +147,40 @@ whether unattended scheduled runs clear the permission dialog is `[UNKNOWN]`.
 - Whether a scheduled automation can carry Full Access, or stalls on the dialog.
 - A native check of the `zh` strings in `plugin.json` before submission.
 
-## Start here — cycle L: the two prose findings from the same run
+## Start here — cycle M: the unknown claim key, then the file nobody measured
 
-**Cycle K closed #14** — the containment checks now live in
-`scripts/_evidence.py` and both scripts import them, with the identity of the
-function objects pinned in `tests/test_evidence.py`. That was the code half of
-eval case G. The two that remain are prose, and prose is where every failure
-this project has measured actually lives.
+**Cycle L closed #15 and reopened #16.** Both fixes went into
+`skills/letter-triage/SKILL.md` without touching a script; the case G re-run
+confirmed the first and reversed the second. The word budget went 1000 → 991 in
+the same cycle: the file gained three rules and still shrank, once the budget
+forced the question of what the older prose was earning.
 
-- **#15 — `letter-triage` does not carry the language-substitution ban.**
-  `daily-brief` and `deadline-watch` both have it; the file that ran did not,
-  and her copy came out as written Chinese headed *"read-aloud script in
-  Hokkien"*. The rule to add is not "never substitute": it is that a read-aloud
-  fallback must be **labelled as the language it is actually written in**.
-  Cheapest fix in the repo and it costs a senior her own language.
-- **#16 — a refused field is routed around rather than reported.** The agent
-  kept two figures the gate had nulled and moved them past it by hand-feeding
-  the next script. `insurance_claim_review.py` now refuses them, so the money
-  path is closed — but nothing yet tells an agent that a refused value must not
-  be carried into an artifact, an answer, or another script's input. The
-  toolkit `SKILL.md` gained that sentence in cycle K; `letter-triage` has not.
-  Note that placement is *not* the answer here: #16's rule was already a headed
-  bullet and was still ignored, which is the first counter-example to #10.
-- **#17 — `insurance_claim_review.py` ignores an unrecognised claim key.** Found
-  in the cycle K re-run. One `_reject_unknown` over the claim's keys, matching
-  `letter_record.py`. This is code, and small; take it first if you want the
-  suite green before touching prose.
+- **#16 — a refused value still reaches her copy, as a sentence.** The new rule
+  is obeyed as a *field state* — the family CSV flags the row, the disclosure
+  log carries `flags` — and broken as *prose*: her copy says "if we do the math,
+  it would be 360 dollars". Read the reopened entry. The next attempt should say
+  what to write instead of the number, not only that the number is banned.
+  **Do not close it again without a case G run that reads her copy.**
 
-Both #15 and #16 were **narrowed** by the cycle K re-run rather than reproduced
-whole — read their updated entries before writing anything, because the halves
-that remain are not the halves that were originally measured.
+- **#17 — `insurance_claim_review.py` ignores an unrecognised claim key.** One
+  `_reject_unknown` over the claim's keys, matching `letter_record.py`. Code,
+  small, and the only open finding that can silently discard a field. Take it
+  first — it is the last one that produces a wrong number rather than a badly
+  reported one.
+- **#18 — `deadline-watch` has neither half of the language rule.** Opened in
+  cycle L by checking a claim #15 made rather than taking it: that finding says
+  `daily-brief` and `deadline-watch` both carry the substitution ban, and only
+  `daily-brief` does. `deadline-watch` is the file `letter-triage` was, and it
+  runs daily. It has never failed because **no eval case has ever reached its
+  senior copy** — E and F both correctly stop before writing. Copy
+  `daily-brief`'s two bullets, which are the only ones measured to work.
+- **#11 still needs a decision, not a cycle.** Which `HouseholdProfile` path is
+  canonical: `household/profile.json` or `out/household_profile.json`.
 
-**Then re-run case G.** Case F was re-run in cycle K and finding #12 is closed:
-the agent refused the password, refused to batch, and asked for `horizon_days`
-and `detail_level` in the caregiver's own words. Writing no file is the right
-answer when it holds neither setting.
+**#18 is worth a case as much as a fix.** A file that cannot fail an evaluation
+is not passing it. Either extend case E with `horizon_days` and `detail_level`
+supplied up front so it reaches `out/senior/`, or write the case that does.
 
-Every script on disk is frozen again. Cycle L should not need to touch one.
+**Then re-run case G.** Cycle L's run is in `evals/RESULTS.md`.
+
+Every script on disk is frozen except for #17's one check.

@@ -439,7 +439,7 @@ were fixture defects, none a behaviour change.
 
 ---
 
-## 15. `letter-triage` does not carry the language-substitution ban — MEDIUM
+## 15. `letter-triage` does not carry the language-substitution ban — MEDIUM — **FIXED**
 
 Same run. The profile says `language: "hokkien"`, `chronic_conditions: []`, and
 the household members read `en` and `zh`. The agent wrote her copy in **written
@@ -469,9 +469,19 @@ aloud has to work that out for themselves, and if the household reads `en` and
 `zh` it is a coin flip which one they were handed. The rule to write is that
 the label states both.
 
+**Fixed 6 August 2026, cycle L.** `skills/letter-triage/SKILL.md` now carries
+both halves as headed bullets beside the artifact checklist: the ban on a
+near-enough language, and — **label it with the language it is written in**, not
+the one she speaks. Pinned by two token-level tests in
+`tests/test_letter_triage.py`; neither pins wording.
+
+**One claim in this finding was wrong, and it opened #18.** The paragraph above
+says `daily-brief` and `deadline-watch` "both carry" the substitution ban. Only
+`daily-brief` does.
+
 ---
 
-## 16. A refused field is routed around rather than reported — HIGH
+## 16. A refused field is routed around rather than reported — HIGH — **NARROWED, STILL OPEN**
 
 Same run, and the reason #14 reached the caregiver at all.
 
@@ -506,6 +516,57 @@ mentioned it**, exactly as before. The flag is now harmless rather than
 dangerous, which is worse in one specific way: nothing in the run will make
 anyone notice it is being dropped.
 
+**Fixed 6 August 2026, cycle L.** The missing rule is now in
+`skills/letter-triage/SKILL.md` and it is about the *number*, not the record:
+*"A value the script refused is not a value. The refusal belongs to the number,
+not to the record. Do not carry it into the claim you build next, into either
+artifact, or into your answer, and never hand it to another script with the
+snippet that failed."* The reporting half moved into the checklist, because the
+step that was executed correctly is the step that dropped the flag: item 3 now
+reads *every flag on the record* and item 4 *what a person must confirm*. A
+step saying only "write the artifact" is a step two agents completed while
+losing the refusal.
+
+Placement was **not** the fix here and this remains #10's counter-example. The
+existing headed bullet was obeyed as written — the record *was* treated as a
+correct outcome — and the number still walked past it, because nothing said the
+refusal travelled with it.
+
+**That fix was marked closed before it was measured, and the measurement
+reversed it. Reopened the same day, cycle L, still HIGH.** The case G re-run
+against the new file produced this, in her copy:
+
+> *"That means you will have to pay the rest. The letter does not say exactly
+> how much, but if we do the math, it would be 360 dollars."*
+
+The rule added hours earlier says a refused value goes into no artifact and no
+answer. The agent put it in both, and in the caregiver's answer as *"We
+calculate it would be SGD 360.00, but I cannot quote that figure from the letter
+itself."* **It stated the rule and broke it in the same sentence** — the second
+time this project has measured that shape, after case F quoting *"a complete
+run, not a backup plan"* while declining to do the run.
+
+What changed, and it is not nothing:
+
+- **The family artifact carried the flag for the first time.** The CSV row reads
+  `Household Owes | Not Stated | ... | Flagged: REQUIRES_HUMAN_CONFIRMATION`,
+  and `shared_log.jsonl` carries a `flags` array. Two runs had dropped it
+  entirely. The checklist change is what did that, and it should stay.
+- **Her copy did not.** The senior artifact names no flag and states the 360 as
+  arithmetic. Checklist item 4 asks for *what a person must confirm* and the
+  agent wrote her a number instead. The half of the fix that reached the family
+  is the half whose artifact is a table with a `Status` column; the half that
+  reached her is prose, and prose is where it went wrong again.
+
+**The remaining defect is narrower than a routing rule.** The refusal is now
+reported *as a field state* and still violated *as a sentence*. A rule phrased
+as "do not carry it" does not stop a model that has decided the caregiver
+deserves the number and hedges instead. The next attempt should say what to
+write in its place — that the balance is not on the page and the amount owed
+must come from the insurer or the clinic — rather than only what not to write.
+
+**Do not close this again without a case G run that reads her copy.**
+
 ---
 
 ## 17. `insurance_claim_review.py` ignores an unrecognised claim key — MEDIUM
@@ -526,5 +587,41 @@ with no warning.
 
 **Fix:** a `_reject_unknown` over the claim's keys, matching `letter_record.py`.
 The allowed set is the `InsuranceClaimRecord` table in `docs/CONTRACTS.md`.
+
+**Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
+
+---
+
+## 18. `deadline-watch` has neither half of the language rule — MEDIUM
+
+Found 6 August 2026, cycle L, while fixing #15 — by checking the claim #15
+makes rather than taking it. That finding says `daily-brief` and
+`deadline-watch` "both carry" the substitution ban. Grep the two files:
+
+```
+$ grep -c substitut skills/daily-brief/SKILL.md skills/deadline-watch/SKILL.md
+skills/daily-brief/SKILL.md:1
+skills/deadline-watch/SKILL.md:0
+```
+
+`skills/deadline-watch/SKILL.md` has only the same one sentence
+`letter-triage` had before this cycle — *"If the profile names a spoken-only
+language, write hers as a read-aloud script and say so once."* No ban on a
+near-enough language, and no requirement that the script name the language it
+is written in. It is exactly the file `letter-triage` was, and it is the skill
+that runs daily.
+
+This was never measured, because eval cases E and F both stop before writing
+an artifact — case E asks which detail level to use, and case F correctly holds
+off for two missing settings. **Neither case has ever reached the senior copy**,
+so no run has yet had the chance to produce Mandarin under a Hokkien label
+here. The absence of a failure is the absence of a test, not a working file.
+
+**Reproduce:** run case E to completion with `horizon_days` and `detail_level`
+supplied up front, against the `hokkien` profile, and read `out/senior/`.
+
+**Fix:** the two bullets `letter-triage` gained in cycle L, and the same two
+token-level pins in `tests/test_deadline_watch.py`. `daily-brief`'s wording is
+the one to copy; it is the only file where this has been measured to work.
 
 **Not fixed here** — found outside this cycle's item, per `LOOP-PROMPT.md`.
