@@ -1,12 +1,11 @@
 ---
 name: care-coordinator-toolkit
-description: "Runs deterministic Python scripts to calculate and produce exact numbers, dates, distances, and drafts for care tasks, ensuring all data is computed programmatically rather than in prose. trigger: when a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, including when the figure looks simple enough to work out directly. examples: calculating medication supply days, reviewing insurer claims, splitting care costs, finding clinic distances, determining medication purchase terms, generating a pharmacy cart draft"
+description: "Runs deterministic Python scripts to calculate and produce exact numbers, dates, distances, and drafts for care tasks, e.g. medication supply, appointments, transport distances. Use when user says a date, a quantity, a distance, or an amount of money is about to appear in any artifact or reply, to compute data programmatically rather than in prose."
 ---
 
 # Care coordinator toolkit
 
-Nine scripts. Between them they own **every number this expert reports**, and
-whether a run needs a person.
+These scripts own every number this expert reports, and whether a run needs a person. "The senior may use this app herself to monitor her own health situation, or a caregiver may run it on her behalf — both are 'a run.' The senior artifact is written for her either way: plain words, large print, second person, read from HouseholdProfile."
 
 ## The rule
 
