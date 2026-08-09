@@ -1,0 +1,25 @@
+
+## `clinic_finder.py` — the nearest clinics to a point
+
+**Use when** she asks where to go, or an artifact needs a place and a distance.
+
+**Requires:** `snapshot_path`, an `origin` giving `longitude` **then** `latitude`
+— GeoJSON order — and at least one of `limit` and `radius_metres`.
+
+**Source of truth:** a dated snapshot under `references/`, written by a
+person running `tools/fetch_references.py`. An edited one is refused; over 30
+days old still answers, marked `stale`.
+
+**Never call the distance a walk.** It is a straight line rounded to 10 m: no
+route was worked out, and nothing says whether the way is step-free. Quote the
+record's `summary`, which says so. `programmes` is a dataset fact and settles
+nothing about any person.
+
+**Never write this map by hand.** `supply_channel` is copied from the household
+file, never inferred from a medicine's name. A medicine with none recorded is
+**left out**, so the cart reports it unknown and asks — the one field where a
+confident guess puts a prescription medicine in a shopping cart.
+
+An optional `purchase` block carries `pack_size` and a price. A price needs a
+`currency` **and** a `source`; recording one against a medicine with no channel
+raises, rather than being accepted and never used.
