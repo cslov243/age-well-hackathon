@@ -1,12 +1,14 @@
 ---
 name: letter-triage
-description: "Reads a government, clinic or insurer letter that has arrived for an elderly person, quotes its deadline, amount and issuer off the page, files one record per document, and writes a family summary and a plain-words copy for her. trigger: a document arriving in the watched inbox folder, and equally whenever a caregiver or the senior sends a photo of a letter or asks what one says. examples: reading a CHAS renewal letter, explaining an insurer's claim decision, checking what a letter is asking for and by when"
+description: 'Reads a government, clinic or insurer letter that has arrived for an elderly person, quotes its deadline, amount and issuer off the page, files one record per document, and writes a family summary and a plain-words copy for her. Use when a document arrives in the watched inbox folder, and when user sends a photo of a letter or asks "what does this letter say".'
 ---
 
 # Letter triage
 
 Runs when a document arrives in `inbox/`, **and** on request — a watched folder
 may never fire unattended, so every step works on a photo handed to you.
+
+This files a record and drafts two summaries — it never replies, submits, or logs in anywhere, and it never gives clinical advice about what a letter's contents mean for her health.
 
 **You are the instrument here.** Reading the page is yours; every date, amount
 and day count in either artifact is one a script produced.
@@ -28,15 +30,51 @@ whether these bytes are already filed. **`should_extract: false` means stop** �
 a second reading files a record that competes with the first.
 
 `"record"` then takes what you read, **and the check run's `audit_hash` as
-`check_audit_hash`** — it recomputes the check and refuses a mismatch. A letter
+`check_audit_hash`** — it recomputes the check and refuses a mismatch.
+If it refuses on a mismatch, do not retry with the same record.json. Run check again on exactly the same source_files, take its new check_audit_hash, and rebuild record.json around that — never the old one
+A letter
 already filed is answered, not refused: nothing is written and the run is
 finished. **Never delete or move a record in `extracted/`.** `doc_type` is one
 of the seven in
 `conventions.doc_types`; an unrecognised letter is `other`, never the nearest
 match. Every key of `fields` is required — `issuer`, `issue_date`, `deadline`,
 `amounts`, `required_action` — **`null` where the letter never said it.** When
-`doc_type` is `insurance`, build the claim and run `insurance_claim_review.py`.
+`doc_type` is `insurance`, build the claim and run `insurance_claim_review.py`. If it refuses a field as unquotable, the rule is the same as letter_record.py's: leave it null, let the flag stand, and move on — never retype a value you believe is correct against the script's judgement.
 
+### Worked example
+
+A photo of an insurer's letter arrives. First, the check:
+
+`check.json`:
+```json
+{"source_files": ["inbox/letter_20260809_1.jpg"]}
+```
+```
+python3 letter_record.py --input check.json --records extracted/
+```
+Response: {"should_extract": true, "check_audit_hash": "b7e2f9..."}
+(should_extract true means this letter hasn't been filed before — proceed to read it.)
+
+You read the pages, then assemble record.json using check_audit_hash from the check response:
+
+`record.json`:
+```json
+{"check_audit_hash": "b7e2f9...",
+ "doc_type": "insurance",
+ "evidence": {"deadline": "must be submitted by 27 Aug 2026",
+              "amounts[0]": "SGD 1,220.00"},
+ "fields": {"issuer": "Great Eastern",
+            "issue_date": "2026-08-01",
+            "deadline": "2026-08-27",
+            "amounts": ["1220.00"],
+            "required_action": "submit supporting documents"}}
+
+python3 letter_record.py --input record.json --records extracted/
+```
+
+Since doc_type is "insurance", build claims_input.json from this record's fields
+(verbatim — never rebuilt) and run insurance_claim_review.py, then confirmations.py
+over every result the run produced.
 ## Quote it or leave it null
 
 Every issuer, date and amount needs a **verbatim** snippet under its own field
@@ -65,7 +103,7 @@ a notification, a merge costs a deadline.
 ## Every run produces both artifacts
 
 ```
-- [ ] 1. Run the check. should_extract false means stop, and read nothing
+- [ ] 1. Run the check. should_extract: false means stop — do not open the pages, do not run record. Quote the existing record's audit_hash from existing_record_path and finish the run."
 - [ ] 2. Read the pages, then file into extracted/ with its check_audit_hash
 - [ ] 3. Move the pages to processed/ — they are never re-read
 - [ ] 4. Run confirmations.py over every result this run produced
