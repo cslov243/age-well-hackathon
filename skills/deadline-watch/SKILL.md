@@ -1,6 +1,6 @@
 ---
 name: deadline-watch
-description: "Collects the dates already computed for an elderly person's household — when a medicine must be reordered, when it runs out, when an insurance claim or appeal closes — and turns the ones falling inside the window into a calendar file the family imports, plus a plain-words copy for her. trigger: the daily scheduled run, and equally whenever a caregiver or the senior asks what is coming up, what falls due this month, or to put a date in the calendar. examples: adding refill dates to a calendar, checking what deadlines are approaching, exporting reminders the family can import"
+description: "Collects the dates already computed for an elderly person's household — when a medicine must be reordered, when it runs out, when an insurance claim or appeal closes — and turns the ones falling inside the window into a calendar file the family imports, plus a plain-words copy for her. Use on the daily scheduled run, and use when the user asks 'what is coming up', 'what is due this month', or to put a date in the calendar."
 ---
 
 # Deadline watch
@@ -32,15 +32,43 @@ The third reads a document you assemble:
 one. Each `audit_hash` is recomputed and a mismatch refused: something edited it
 in transit.
 
+If it refuses on a mismatch, do not patch the file and do not retry with the same input. Re-run the source script that produced it — `medication_runout.py` or `insurance_claim_review.py` — fresh, and rebuild `calendar_input.json` around its new output.
+
 **`forecast` and `claims` are both required keys.** Write `null` for a source
 you do not have. Leaving one out is refused: an absent key and a misspelled one
 look identical from inside the script, and one means a set of deadlines went
 nowhere.
 
+### Worked example
+
+Only a medication forecast exists this run — no insurance claim is active.
+
+`forecast.json` (from `medication_runout.py`):
+```json
+{"medications": [{"id": "amlodipine-5", "name": "Amlodipine 5mg",
+  "order_by": "2026-08-16", "runs_out_on": "2026-08-23"}],
+ "audit_hash": "d3f8a1c9..."}
+```
+calendar_input.json is assembled as:
+
+```json
+{"as_of": "2026-08-09",
+ "horizon_days": 30,
+ "detail_level": "named",
+ "forecast": {"medications": [{"id": "amlodipine-5", "name": "Amlodipine 5mg",
+   "order_by": "2026-08-16", "runs_out_on": "2026-08-23"}],
+   "audit_hash": "d3f8a1c9..."},
+ "claims": null}
+```
+Note: claims is written as null, not omitted — there is no active claim this run, and the key still has to be present.
+
 ## What you must not decide
 
 - **`horizon_days` has no default.** How far ahead a household wants to be
   reminded is theirs to say. If nothing says, ask.
+
+If `horizon_days` or `detail_level` is never answered, do not invoke `deadline_calendar.py`. The sources may still be run and their results held, but no `.ics` and no artifact are written until both answers are in — a calendar with a guessed horizon or an undecided disclosure level is not a safe default to fall back on.
+
 - **`detail_level` has no default: it is a disclosure decision.** `minimal`
   names no medicine, condition, insurer or amount; `named` puts her business in
   front of everyone the calendar reaches. **Ask her**, not only the
