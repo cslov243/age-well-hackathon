@@ -15,13 +15,6 @@ route was worked out, and nothing says whether the way is step-free. Quote the
 record's `summary`, which says so. `programmes` is a dataset fact and settles
 nothing about any person.
 
-## `purchase_terms.py` — how each medicine is obtained
-
-**Use when** a cart is about to be drafted. It builds the `purchase` map
-`pharmacy_cart.py` reads, from `household/medication.json`.
-
-**Requires:** `medications`, even when `[]`.
-
 **Never write this map by hand.** `supply_channel` is copied from the household
 file, never inferred from a medicine's name. A medicine with none recorded is
 **left out**, so the cart reports it unknown and asks — the one field where a
